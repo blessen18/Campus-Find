@@ -48,39 +48,17 @@ export function useItems(type?: 'lost' | 'found') {
 
       const { data, count, error } = await query
 
-      if (error || !data || data.length === 0) {
-        // Fall back to pre-seeded realistic campus items
-        let fallback = [...INITIAL_CAMPUS_ITEMS]
-        if (type) fallback = fallback.filter(i => i.type === type)
-        if (filters.status) fallback = fallback.filter(i => i.status === filters.status)
-        if (filters.category) fallback = fallback.filter(i => i.category_id === filters.category)
-        if (filters.search) {
-          const s = filters.search.toLowerCase()
-          fallback = fallback.filter(i =>
-            i.title.toLowerCase().includes(s) ||
-            i.description.toLowerCase().includes(s) ||
-            (i.location?.name && i.location.name.toLowerCase().includes(s))
-          )
-        }
-        if (filters.location) {
-          const l = filters.location.toLowerCase()
-          fallback = fallback.filter(i =>
-            (i.location?.name && i.location.name.toLowerCase().includes(l)) ||
-            (i.location_detail && i.location_detail.toLowerCase().includes(l))
-          )
-        }
-        setItems(fallback)
-        setTotalCount(fallback.length)
+      if (error) {
+        setItems([])
+        setTotalCount(0)
       } else {
-        setItems(data as Item[])
-        setTotalCount(count || data.length)
+        setItems((data || []) as Item[])
+        setTotalCount(count || (data ? data.length : 0))
       }
     } catch (err) {
-      console.warn('Supabase items query note:', err)
-      let fallback = [...INITIAL_CAMPUS_ITEMS]
-      if (type) fallback = fallback.filter(i => i.type === type)
-      setItems(fallback)
-      setTotalCount(fallback.length)
+      console.warn('Items query note:', err)
+      setItems([])
+      setTotalCount(0)
     } finally {
       setLoading(false)
     }

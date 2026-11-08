@@ -8,36 +8,28 @@ import type { Item } from '@/types'
 async function getHomeData() {
   try {
     const supabase = await createClient()
-    const [lostRes, foundRes] = await Promise.all([
+    const [lostRes, foundRes, totalResolvedRes] = await Promise.all([
       supabase.from('items').select(`*, category:categories(id,name,icon), location:locations(id,name)`)
         .eq('type', 'lost').eq('status', 'active').order('created_at', { ascending: false }).limit(4),
       supabase.from('items').select(`*, category:categories(id,name,icon), location:locations(id,name)`)
         .eq('type', 'found').eq('status', 'active').order('created_at', { ascending: false }).limit(4),
+      supabase.from('items').select('*', { count: 'exact', head: true }).eq('status', 'resolved'),
     ])
 
-    const dbLost = (lostRes.data || []) as Item[]
-    const dbFound = (foundRes.data || []) as Item[]
-
-    const recentLost = dbLost.length > 0
-      ? dbLost
-      : INITIAL_CAMPUS_ITEMS.filter(i => i.type === 'lost').slice(0, 4)
-
-    const recentFound = dbFound.length > 0
-      ? dbFound
-      : INITIAL_CAMPUS_ITEMS.filter(i => i.type === 'found').slice(0, 4)
-
-    const totalLost = INITIAL_CAMPUS_ITEMS.filter(i => i.type === 'lost').length + 12
-    const totalFound = INITIAL_CAMPUS_ITEMS.filter(i => i.type === 'found').length + 24
-    const totalResolved = INITIAL_CAMPUS_ITEMS.filter(i => i.status === 'resolved').length + 38
+    const recentLost = (lostRes.data || []) as Item[]
+    const recentFound = (foundRes.data || []) as Item[]
+    const totalLost = recentLost.length
+    const totalFound = recentFound.length
+    const totalResolved = totalResolvedRes.count || 0
 
     return { recentLost, recentFound, totalLost, totalFound, totalResolved }
   } catch {
     return {
-      recentLost: INITIAL_CAMPUS_ITEMS.filter(i => i.type === 'lost').slice(0, 4),
-      recentFound: INITIAL_CAMPUS_ITEMS.filter(i => i.type === 'found').slice(0, 4),
-      totalLost: 14,
-      totalFound: 28,
-      totalResolved: 42,
+      recentLost: [],
+      recentFound: [],
+      totalLost: 0,
+      totalFound: 0,
+      totalResolved: 0,
     }
   }
 }

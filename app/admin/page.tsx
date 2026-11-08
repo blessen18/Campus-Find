@@ -34,7 +34,7 @@ export default async function AdminPage() {
     // offline/fallback mode
   }
 
-  const items = dbItems.length > 0 ? dbItems : INITIAL_CAMPUS_ITEMS
+  const items = dbItems
 
   return (
     <AdminDashboardClient

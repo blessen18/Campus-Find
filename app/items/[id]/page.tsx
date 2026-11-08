@@ -29,7 +29,7 @@ async function getItem(id: string): Promise<Item | null> {
   } catch (err) {
     // fallback
   }
-  return INITIAL_CAMPUS_ITEMS.find(i => i.id === id) || null
+  return null
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
