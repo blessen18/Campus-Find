@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Mail, Lock, Eye, EyeOff, AlertCircle, BookOpen } from 'lucide-react'
 import { useToast } from '@/components/providers/ToastProvider'
 import { setClientSession, getClientUser } from '@/lib/auth'
+import { isAjceEmail } from '@/lib/utils'
 import type { Profile } from '@/types'
 
 export default function LoginPage() {
@@ -21,6 +22,11 @@ export default function LoginPage() {
     e.preventDefault()
     if (!email.trim() || !password) {
       setError('Please enter your email and password')
+      return
+    }
+
+    if (!isAjceEmail(email)) {
+      setError('Please use your official Amal Jyothi email (e.g. yourname2030@cs.ajce.in)')
       return
     }
     setError('')
@@ -55,7 +61,7 @@ export default function LoginPage() {
   }
 
   const fillDemo = () => {
-    setEmail('blessen@ajce.edu.in')
+    setEmail('blessenunnikrishnan2030@cs.ajce.in')
     setPassword('Campus@2026!')
   }
 
@@ -83,7 +89,7 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide" htmlFor="email">
-                Email
+                Amal Jyothi Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -92,7 +98,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="name@ajce.edu.in"
+                  placeholder="e.g. blessenunnikrishnan2030@cs.ajce.in"
                   className="w-full border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors"
                   required
                 />

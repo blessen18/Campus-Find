@@ -73,6 +73,16 @@ export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+/**
+ * Validates whether an email belongs to an official Amal Jyothi College of Engineering student/member.
+ * Standard student email format: username<year>@<dept>.ajce.in (e.g. blessenunnikrishnan2030@cs.ajce.in)
+ * Also supports @ajce.in and @ajce.edu.in for general campus addresses.
+ */
+export function isAjceEmail(email: string): boolean {
+  const normalized = email.trim().toLowerCase()
+  return /^[a-zA-Z0-9._%+-]+@([a-zA-Z0-9-]+\.)?ajce\.(in|edu\.in)$/.test(normalized)
+}
+
 export function isValidPhone(phone: string): boolean {
   return /^[6-9]\d{9}$/.test(phone.replace(/\s/g, ''))
 }

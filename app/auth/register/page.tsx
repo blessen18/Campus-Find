@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Mail, Lock, User, Eye, EyeOff, AlertCircle, BookOpen, Building2, GraduationCap, CheckCircle } from 'lucide-react'
-import { isValidEmail } from '@/lib/utils'
+import { isValidEmail, isAjceEmail } from '@/lib/utils'
 import { setClientSession } from '@/lib/auth'
 import { useToast } from '@/components/providers/ToastProvider'
 import type { Profile, UserRole } from '@/types'
@@ -40,6 +40,9 @@ export default function RegisterPage() {
   const validate = () => {
     if (!form.full_name.trim()) return 'Full name is required'
     if (!isValidEmail(form.email)) return 'Please enter a valid email address'
+    if (!isAjceEmail(form.email)) {
+      return 'Registration is restricted to Amal Jyothi college emails only (e.g. yourname2030@cs.ajce.in).'
+    }
     if (form.password.length < 8) return 'Password must be at least 8 characters'
     if (form.password !== form.confirm) return 'Passwords do not match'
     if (!form.department) return 'Please select your department'
@@ -145,9 +148,14 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide" htmlFor="email">
-                Email <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide" htmlFor="email">
+                  Amal Jyothi Email <span className="text-red-500">*</span>
+                </label>
+                <span className="text-[10px] text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                  @*.ajce.in only
+                </span>
+              </div>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
@@ -155,11 +163,14 @@ export default function RegisterPage() {
                   type="email"
                   value={form.email}
                   onChange={e => setField('email', e.target.value)}
-                  placeholder="name@ajce.edu.in or personal email"
+                  placeholder="e.g. blessenunnikrishnan2030@cs.ajce.in"
                   className="w-full border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors"
                   required
                 />
               </div>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Must be your official AJCE student email (e.g. <span className="font-mono text-slate-700">username2030@cs.ajce.in</span>)
+              </p>
             </div>
 
             {/* Account Type */}
