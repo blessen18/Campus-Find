@@ -3,14 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Mail, Lock, Eye, EyeOff, AlertCircle, BookOpen, Code2, GraduationCap } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, AlertCircle, BookOpen, ShieldCheck, GraduationCap } from 'lucide-react'
 import { useToast } from '@/components/providers/ToastProvider'
 import { setClientSession, getClientUser } from '@/lib/auth'
-import { isAjceEmail, isDeveloperEmail, DEVELOPER_EMAIL } from '@/lib/utils'
+import { isAjceEmail, isDeveloperEmail } from '@/lib/utils'
 import type { Profile } from '@/types'
 
 export default function LoginPage() {
-  const [loginType, setLoginType] = useState<'student' | 'developer'>('student')
+  const [loginType, setLoginType] = useState<'student' | 'admin'>('student')
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw]     = useState(false)
@@ -28,27 +28,27 @@ export default function LoginPage() {
 
     const cleanEmail = email.trim().toLowerCase()
 
-    // Check if user is either primary developer or whitelisted developer
-    let isWhitelistedDev = isDeveloperEmail(cleanEmail)
-    if (!isWhitelistedDev && typeof window !== 'undefined') {
+    // Check if user is either primary admin or whitelisted admin
+    let isWhitelistedAdmin = isDeveloperEmail(cleanEmail)
+    if (!isWhitelistedAdmin && typeof window !== 'undefined') {
       try {
         const rawList = localStorage.getItem('campusfind_developer_whitelist')
         if (rawList) {
           const devs = JSON.parse(rawList) as string[]
           if (Array.isArray(devs) && devs.map(d => d.toLowerCase()).includes(cleanEmail)) {
-            isWhitelistedDev = true
+            isWhitelistedAdmin = true
           }
         }
       } catch (e) {}
     }
 
-    if (loginType === 'developer') {
-      if (!isWhitelistedDev) {
-        setError(`Access denied. Developer login is restricted to authorized developer accounts (${DEVELOPER_EMAIL}).`)
+    if (loginType === 'admin') {
+      if (!isWhitelistedAdmin) {
+        setError('Access denied. Admin portal is restricted to authorized administrator accounts.')
         return
       }
     } else {
-      if (!isAjceEmail(cleanEmail) && !isWhitelistedDev) {
+      if (!isAjceEmail(cleanEmail) && !isWhitelistedAdmin) {
         setError('Please use your official Amal Jyothi email (e.g. yourname2030@cs.ajce.in)')
         return
       }
@@ -59,22 +59,22 @@ export default function LoginPage() {
     // Simulate login delay
     await new Promise(r => setTimeout(r, 500))
 
-    const isDev = isWhitelistedDev
+    const isAdmin = isWhitelistedAdmin
 
     // Check existing local user or create session
     const existingUser = getClientUser()
     const activeProfile: Profile = existingUser && existingUser.email === cleanEmail ? {
       ...existingUser,
-      role: isDev ? 'admin' : existingUser.role,
+      role: isAdmin ? 'admin' : existingUser.role,
     } : {
-      id: isDev ? ('usr-dev-' + cleanEmail.split('@')[0]) : ('usr-campus-' + Date.now()),
-      full_name: isDev 
-        ? (cleanEmail === DEVELOPER_EMAIL.toLowerCase() ? 'Blesson Unnikrishnan (Lead Dev)' : `Developer (${cleanEmail.split('@')[0]})`)
+      id: isAdmin ? ('usr-admin-' + cleanEmail.split('@')[0]) : ('usr-campus-' + Date.now()),
+      full_name: isAdmin 
+        ? 'Campus Administrator'
         : cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       email: cleanEmail,
-      role: isDev ? 'admin' : 'student',
-      department: 'Computer Science & Engineering',
-      student_id: isDev ? 'DEV-AJCE-01' : 'AJCE-CS-2401',
+      role: isAdmin ? 'admin' : 'student',
+      department: 'Administration',
+      student_id: isAdmin ? 'ADMIN-AJCE-01' : 'AJCE-CS-2401',
       phone: null,
       avatar_url: null,
       is_active: true,
@@ -83,11 +83,11 @@ export default function LoginPage() {
     }
 
     setClientSession(activeProfile)
-    success('Welcome back!', isDev ? 'Developer session established' : `Signed in as ${activeProfile.full_name}`)
+    success('Welcome back!', isAdmin ? 'Administrator session active' : `Signed in as ${activeProfile.full_name}`)
     setLoading(false)
 
-    if (isDev) {
-      // Open the master developer console in a clean dedicated tab/window
+    if (isAdmin) {
+      // Open the master admin console in a clean dedicated tab/window
       window.open('/admin', '_blank')
       router.push('/dashboard')
     } else {
@@ -103,10 +103,10 @@ export default function LoginPage() {
     setError('')
   }
 
-  const fillDemoDev = () => {
-    setLoginType('developer')
+  const fillDemoAdmin = () => {
+    setLoginType('admin')
     setEmail('blessenunnikrishnan@gmail.com')
-    setPassword('DevCampus@2026!')
+    setPassword('Admin@2026!')
     setError('')
   }
 
@@ -115,14 +115,14 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className={`inline-flex items-center justify-center w-12 h-12 rounded-2xl text-white mx-auto shadow-sm mb-1 transition-colors ${loginType === 'developer' ? 'bg-slate-900 ring-2 ring-amber-400/40' : 'bg-blue-600'}`}>
-            {loginType === 'developer' ? <Code2 className="w-6 h-6 text-amber-400" /> : <BookOpen className="w-6 h-6" />}
+          <div className={`inline-flex items-center justify-center w-12 h-12 rounded-2xl text-white mx-auto shadow-sm mb-1 transition-colors ${loginType === 'admin' ? 'bg-slate-900 ring-2 ring-blue-500/30' : 'bg-blue-600'}`}>
+            {loginType === 'admin' ? <ShieldCheck className="w-6 h-6 text-blue-400" /> : <BookOpen className="w-6 h-6" />}
           </div>
           <h1 className="text-2xl font-bold text-slate-900">
-            {loginType === 'developer' ? 'Developer Console' : 'Sign in to CampusFind'}
+            {loginType === 'admin' ? 'Admin Portal' : 'Sign in to CampusFind'}
           </h1>
           <p className="text-sm text-slate-500">
-            {loginType === 'developer' ? 'Authorized maintenance & administrative access' : 'Access your reports and claims'}
+            {loginType === 'admin' ? 'Authorized administrative and system management access' : 'Access your reports and claims'}
           </p>
 
           {/* Login Type Switcher Tabs */}
@@ -142,15 +142,15 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
-                onClick={() => { setLoginType('developer'); setError(''); }}
+                onClick={() => { setLoginType('admin'); setError(''); }}
                 className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all ${
-                  loginType === 'developer'
-                    ? 'bg-slate-900 text-amber-400 shadow-xs'
+                  loginType === 'admin'
+                    ? 'bg-slate-900 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Code2 className="w-3.5 h-3.5" />
-                Developer
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+                Admin
               </button>
             </div>
           </div>
@@ -158,7 +158,7 @@ export default function LoginPage() {
 
         {/* Form Card */}
         <div className={`bg-white rounded-2xl border shadow-sm p-6 sm:p-7 transition-all ${
-          loginType === 'developer' ? 'border-amber-400/40 ring-1 ring-amber-400/20' : 'border-slate-200'
+          loginType === 'admin' ? 'border-slate-300 ring-1 ring-slate-200' : 'border-slate-200'
         }`}>
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
@@ -171,10 +171,10 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide" htmlFor="email">
-                  {loginType === 'developer' ? 'Developer Email' : 'Amal Jyothi Email'}
+                  {loginType === 'admin' ? 'Admin Email' : 'Amal Jyothi Email'}
                 </label>
-                {loginType === 'developer' ? (
-                  <span className="text-[10px] text-amber-700 bg-amber-50 font-medium px-2 py-0.5 rounded-full border border-amber-200">
+                {loginType === 'admin' ? (
+                  <span className="text-[10px] text-slate-700 bg-slate-100 font-medium px-2 py-0.5 rounded-full border border-slate-200">
                     Restricted
                   </span>
                 ) : (
@@ -190,16 +190,11 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder={loginType === 'developer' ? 'blessenunnikrishnan@gmail.com' : 'e.g. blessenunnikrishnan2030@cs.ajce.in'}
+                  placeholder={loginType === 'admin' ? 'admin@gmail.com' : 'e.g. blessenunnikrishnan2030@cs.ajce.in'}
                   className="w-full border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors"
                   required
                 />
               </div>
-              {loginType === 'developer' && (
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Only the site creator's email (<span className="font-mono text-slate-700">blessenunnikrishnan@gmail.com</span>) is authorized.
-                </p>
-              )}
             </div>
 
             <div>
@@ -236,7 +231,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className={`w-full text-white font-semibold py-2.5 rounded-lg text-sm transition-colors shadow-sm mt-1 ${
-                loginType === 'developer'
+                loginType === 'admin'
                   ? 'bg-slate-900 hover:bg-slate-800 disabled:bg-slate-700'
                   : 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400'
               }`}
@@ -249,17 +244,17 @@ export default function LoginPage() {
                   </svg>
                   Authenticating…
                 </span>
-              ) : (loginType === 'developer' ? 'Access Developer Console' : 'Sign in')}
+              ) : (loginType === 'admin' ? 'Access Admin Console' : 'Sign in')}
             </button>
 
             <div className="pt-1 flex flex-col gap-1 text-center">
-              {loginType === 'developer' ? (
+              {loginType === 'admin' ? (
                 <button
                   type="button"
-                  onClick={fillDemoDev}
-                  className="text-xs text-amber-700 hover:underline font-medium py-1 transition-colors"
+                  onClick={fillDemoAdmin}
+                  className="text-xs text-slate-500 hover:text-slate-800 font-medium py-1 transition-colors"
                 >
-                  Fill developer credentials
+                  Fill admin credentials
                 </button>
               ) : (
                 <button

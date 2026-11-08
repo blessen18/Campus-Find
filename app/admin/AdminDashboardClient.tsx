@@ -174,15 +174,15 @@ export function AdminDashboardClient({
         <div className="container-page">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/10 text-amber-300 border border-amber-400/20 mb-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                <span>Developer & Master Control Console</span>
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-300 border border-blue-400/20 mb-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+                <span>Admin & Master Control Console</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                CampusFind Master Dashboard
+                CampusFind Admin Console
               </h1>
               <p className="text-slate-400 text-xs sm:text-sm">
-                Signed in as <span className="text-white font-mono">{currentUser.email}</span> ({isSuperDev ? 'Primary Creator' : 'Authorized Developer'})
+                Administrative access enabled ({isSuperDev ? 'Primary Administrator' : 'Authorized Administrator'})
               </p>
             </div>
 
@@ -209,7 +209,7 @@ export function AdminDashboardClient({
             { label: 'Active Found', value: stats.activeFound, color: 'bg-green-50/70 border-green-200 text-green-700' },
             { label: 'Resolved / Returned', value: stats.resolved, color: 'bg-slate-100/70 border-slate-200 text-slate-700' },
             { label: 'Pending Claims', value: stats.pendingClaims, color: 'bg-amber-50/70 border-amber-200 text-amber-700' },
-            { label: 'Active Developers', value: stats.totalDevs, color: 'bg-indigo-50/70 border-indigo-200 text-indigo-700' },
+            { label: 'Active Admins', value: stats.totalDevs, color: 'bg-indigo-50/70 border-indigo-200 text-indigo-700' },
           ].map(({ label, value, color }) => (
             <div key={label} className={`p-4 rounded-xl border text-center shadow-xs ${color}`}>
               <p className="text-2xl font-bold">{value}</p>
@@ -218,20 +218,20 @@ export function AdminDashboardClient({
           ))}
         </div>
 
-        {/* ── Developer Access Delegation Panel (Only visible to the Primary Creator) ── */}
+        {/* ── Administrator Access Delegation Panel (Only visible to the Primary Admin) ── */}
         <section className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
             <div>
               <div className="flex items-center gap-2">
-                <Key className="w-4 h-4 text-amber-500" />
-                <h2 className="text-base font-bold text-slate-900">Developer Access Delegation</h2>
+                <Key className="w-4 h-4 text-blue-500" />
+                <h2 className="text-base font-bold text-slate-900">Administrator Access Delegation</h2>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Grant or revoke developer privileges to other Gmail accounts. Only the primary developer (<span className="font-mono text-slate-700 font-semibold">{DEVELOPER_EMAIL}</span>) can manage this list.
+                Grant or revoke admin privileges to other Gmail accounts. Only the primary administrator has authority to manage this list.
               </p>
             </div>
             {isSuperDev && (
-              <span className="text-xs font-semibold px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full flex-shrink-0">
+              <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full flex-shrink-0">
                 ⭐ Primary Authority
               </span>
             )}
@@ -269,7 +269,7 @@ export function AdminDashboardClient({
               {/* Whitelist Display */}
               <div className="pt-2">
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">
-                  Authorized Developers ({whitelistedDevs.length})
+                  Authorized Administrators ({whitelistedDevs.length})
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                   {whitelistedDevs.map(devMail => (
@@ -513,3 +513,4 @@ export function AdminDashboardClient({
     </div>
   )
 }
+
