@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft, User, Calendar, MapPin, ShieldAlert, FileText } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getServerUser } from '@/lib/supabase/server'
 import { formatDate, formatRelativeTime, TYPE_LABELS, TYPE_COLORS, STATUS_LABELS, STATUS_COLORS } from '@/lib/utils'
 import { ClaimReviewClient } from './ClaimReviewClient'
 import type { Claim, Item, Profile } from '@/types'
@@ -12,12 +12,11 @@ interface Props {
 }
 
 export default async function AdminClaimDetailPage({ params }: Props) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
+  const profile = await getServerUser()
+  if (!profile) redirect('/auth/login?redirect=/admin')
+  if (profile.role !== 'admin') redirect('/')
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-  if (profile?.role !== 'admin') redirect('/')
+  const supabase = await createClient()
 
   const { data: claimData, error } = await supabase
     .from('claims')

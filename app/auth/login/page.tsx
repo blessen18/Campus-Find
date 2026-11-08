@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Mail, Lock, Eye, EyeOff, AlertCircle, BookOpen } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, AlertCircle, BookOpen, Code2, GraduationCap } from 'lucide-react'
 import { useToast } from '@/components/providers/ToastProvider'
 import { setClientSession, getClientUser } from '@/lib/auth'
-import { isAjceEmail } from '@/lib/utils'
+import { isAjceEmail, isDeveloperEmail, DEVELOPER_EMAIL } from '@/lib/utils'
 import type { Profile } from '@/types'
 
 export default function LoginPage() {
+  const [loginType, setLoginType] = useState<'student' | 'developer'>('student')
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw]     = useState(false)
@@ -25,27 +26,39 @@ export default function LoginPage() {
       return
     }
 
-    if (!isAjceEmail(email)) {
-      setError('Please use your official Amal Jyothi email (e.g. yourname2030@cs.ajce.in)')
-      return
+    const cleanEmail = email.trim().toLowerCase()
+
+    if (loginType === 'developer') {
+      if (!isDeveloperEmail(cleanEmail)) {
+        setError(`Access denied. Developer login is strictly restricted to ${DEVELOPER_EMAIL}.`)
+        return
+      }
+    } else {
+      if (!isAjceEmail(cleanEmail) && !isDeveloperEmail(cleanEmail)) {
+        setError('Please use your official Amal Jyothi email (e.g. yourname2030@cs.ajce.in)')
+        return
+      }
     }
     setError('')
     setLoading(true)
 
-    const cleanEmail = email.trim().toLowerCase()
-
     // Simulate login delay
     await new Promise(r => setTimeout(r, 500))
 
+    const isDev = isDeveloperEmail(cleanEmail)
+
     // Check existing local user or create session
     const existingUser = getClientUser()
-    const activeProfile: Profile = existingUser && existingUser.email === cleanEmail ? existingUser : {
-      id: 'usr-campus-' + Date.now(),
-      full_name: cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    const activeProfile: Profile = existingUser && existingUser.email === cleanEmail ? {
+      ...existingUser,
+      role: isDev ? 'admin' : existingUser.role,
+    } : {
+      id: isDev ? 'usr-dev-blessen' : ('usr-campus-' + Date.now()),
+      full_name: isDev ? 'Blesson Unnikrishnan (Developer)' : cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       email: cleanEmail,
-      role: cleanEmail.includes('admin') ? 'admin' : 'student',
+      role: isDev ? 'admin' : 'student',
       department: 'Computer Science & Engineering',
-      student_id: 'AJCE-CS-2401',
+      student_id: isDev ? 'DEV-AJCE-01' : 'AJCE-CS-2401',
       phone: null,
       avatar_url: null,
       is_active: true,
@@ -54,15 +67,24 @@ export default function LoginPage() {
     }
 
     setClientSession(activeProfile)
-    success('Welcome back!', `Signed in as ${activeProfile.full_name}`)
+    success('Welcome back!', isDev ? 'Signed in with Developer privileges' : `Signed in as ${activeProfile.full_name}`)
     setLoading(false)
-    router.push('/dashboard')
+    router.push(isDev ? '/admin' : '/dashboard')
     router.refresh()
   }
 
-  const fillDemo = () => {
+  const fillDemoStudent = () => {
+    setLoginType('student')
     setEmail('blessenunnikrishnan2030@cs.ajce.in')
     setPassword('Campus@2026!')
+    setError('')
+  }
+
+  const fillDemoDev = () => {
+    setLoginType('developer')
+    setEmail('blessenunnikrishnan@gmail.com')
+    setPassword('DevCampus@2026!')
+    setError('')
   }
 
   return (
@@ -70,15 +92,51 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600 text-white mx-auto shadow-sm mb-1">
-            <BookOpen className="w-6 h-6" />
+          <div className={`inline-flex items-center justify-center w-12 h-12 rounded-2xl text-white mx-auto shadow-sm mb-1 transition-colors ${loginType === 'developer' ? 'bg-slate-900 ring-2 ring-amber-400/40' : 'bg-blue-600'}`}>
+            {loginType === 'developer' ? <Code2 className="w-6 h-6 text-amber-400" /> : <BookOpen className="w-6 h-6" />}
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Sign in to CampusFind</h1>
-          <p className="text-sm text-slate-500">Access your reports and claims</p>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {loginType === 'developer' ? 'Developer Console' : 'Sign in to CampusFind'}
+          </h1>
+          <p className="text-sm text-slate-500">
+            {loginType === 'developer' ? 'Authorized maintenance & administrative access' : 'Access your reports and claims'}
+          </p>
+
+          {/* Login Type Switcher Tabs */}
+          <div className="pt-2">
+            <div className="grid grid-cols-2 p-1 bg-slate-200/80 rounded-xl max-w-xs mx-auto text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => { setLoginType('student'); setError(''); }}
+                className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all ${
+                  loginType === 'student'
+                    ? 'bg-white text-blue-700 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <GraduationCap className="w-3.5 h-3.5" />
+                Student / Staff
+              </button>
+              <button
+                type="button"
+                onClick={() => { setLoginType('developer'); setError(''); }}
+                className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all ${
+                  loginType === 'developer'
+                    ? 'bg-slate-900 text-amber-400 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Code2 className="w-3.5 h-3.5" />
+                Developer
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-7">
+        <div className={`bg-white rounded-2xl border shadow-sm p-6 sm:p-7 transition-all ${
+          loginType === 'developer' ? 'border-amber-400/40 ring-1 ring-amber-400/20' : 'border-slate-200'
+        }`}>
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
               <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
@@ -88,9 +146,20 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide" htmlFor="email">
-                Amal Jyothi Email
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide" htmlFor="email">
+                  {loginType === 'developer' ? 'Developer Email' : 'Amal Jyothi Email'}
+                </label>
+                {loginType === 'developer' ? (
+                  <span className="text-[10px] text-amber-700 bg-amber-50 font-medium px-2 py-0.5 rounded-full border border-amber-200">
+                    Restricted
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-blue-600 bg-blue-50 font-medium px-2 py-0.5 rounded-full border border-blue-100">
+                    @*.ajce.in
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
@@ -98,11 +167,16 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="e.g. blessenunnikrishnan2030@cs.ajce.in"
+                  placeholder={loginType === 'developer' ? 'blessenunnikrishnan@gmail.com' : 'e.g. blessenunnikrishnan2030@cs.ajce.in'}
                   className="w-full border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors"
                   required
                 />
               </div>
+              {loginType === 'developer' && (
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Only the site creator's email (<span className="font-mono text-slate-700">blessenunnikrishnan@gmail.com</span>) is authorized.
+                </p>
+              )}
             </div>
 
             <div>
@@ -138,7 +212,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-2.5 rounded-lg text-sm transition-colors shadow-sm mt-1"
+              className={`w-full text-white font-semibold py-2.5 rounded-lg text-sm transition-colors shadow-sm mt-1 ${
+                loginType === 'developer'
+                  ? 'bg-slate-900 hover:bg-slate-800 disabled:bg-slate-700'
+                  : 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400'
+              }`}
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -146,18 +224,30 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                   </svg>
-                  Signing in…
+                  Authenticating…
                 </span>
-              ) : 'Sign in'}
+              ) : (loginType === 'developer' ? 'Access Developer Console' : 'Sign in')}
             </button>
 
-            <button
-              type="button"
-              onClick={fillDemo}
-              className="w-full text-center text-xs text-slate-400 hover:text-blue-600 font-medium py-1 transition-colors"
-            >
-              Use demo credentials
-            </button>
+            <div className="pt-1 flex flex-col gap-1 text-center">
+              {loginType === 'developer' ? (
+                <button
+                  type="button"
+                  onClick={fillDemoDev}
+                  className="text-xs text-amber-700 hover:underline font-medium py-1 transition-colors"
+                >
+                  Fill developer credentials
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={fillDemoStudent}
+                  className="text-xs text-slate-400 hover:text-blue-600 font-medium py-1 transition-colors"
+                >
+                  Fill student demo credentials
+                </button>
+              )}
+            </div>
           </form>
 
           <div className="mt-5 pt-4 border-t border-slate-100 text-center text-sm text-slate-500">

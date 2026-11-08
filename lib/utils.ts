@@ -73,6 +73,15 @@ export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+export const DEVELOPER_EMAIL = 'blessenunnikrishnan@gmail.com'
+
+/**
+ * Checks if the given email is the designated developer/superadmin account.
+ */
+export function isDeveloperEmail(email: string): boolean {
+  return email.trim().toLowerCase() === DEVELOPER_EMAIL.toLowerCase()
+}
+
 /**
  * Validates whether an email belongs to an official Amal Jyothi College of Engineering student/member.
  * Standard student email format: username<year>@<dept>.ajce.in (e.g. blessenunnikrishnan2030@cs.ajce.in)

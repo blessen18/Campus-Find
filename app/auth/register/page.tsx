@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Mail, Lock, User, Eye, EyeOff, AlertCircle, BookOpen, Building2, GraduationCap, CheckCircle } from 'lucide-react'
-import { isValidEmail, isAjceEmail } from '@/lib/utils'
+import { isValidEmail, isAjceEmail, isDeveloperEmail } from '@/lib/utils'
 import { setClientSession } from '@/lib/auth'
 import { useToast } from '@/components/providers/ToastProvider'
 import type { Profile, UserRole } from '@/types'
@@ -40,8 +40,9 @@ export default function RegisterPage() {
   const validate = () => {
     if (!form.full_name.trim()) return 'Full name is required'
     if (!isValidEmail(form.email)) return 'Please enter a valid email address'
-    if (!isAjceEmail(form.email)) {
-      return 'Registration is restricted to Amal Jyothi college emails only (e.g. yourname2030@cs.ajce.in).'
+    const isDev = isDeveloperEmail(form.email)
+    if (!isDev && !isAjceEmail(form.email)) {
+      return 'Registration is restricted to Amal Jyothi student emails (e.g. yourname2030@cs.ajce.in) or authorized developer account.'
     }
     if (form.password.length < 8) return 'Password must be at least 8 characters'
     if (form.password !== form.confirm) return 'Passwords do not match'
@@ -59,14 +60,16 @@ export default function RegisterPage() {
     // Simulate a small delay so the UI feels responsive
     await new Promise(r => setTimeout(r, 600))
 
-    // Create local profile — works 100% without any backend
+    const isDev = isDeveloperEmail(form.email)
+
+    // Create profile
     const profile: Profile = {
-      id: 'usr-' + Date.now(),
+      id: isDev ? 'usr-dev-blessen' : 'usr-' + Date.now(),
       full_name: form.full_name.trim(),
       email: form.email.trim().toLowerCase(),
-      role: form.role,
+      role: isDev ? 'admin' : form.role,
       department: form.department,
-      student_id: form.role === 'student' ? `AJCE-${Math.floor(1000 + Math.random() * 9000)}` : null,
+      student_id: isDev ? 'DEV-AJCE-01' : (form.role === 'student' ? `AJCE-${Math.floor(1000 + Math.random() * 9000)}` : null),
       phone: null,
       avatar_url: null,
       is_active: true,
