@@ -83,7 +83,12 @@ export default function RegisterPage() {
 
     // Redirect after short success flash
     setTimeout(() => {
-      router.push('/dashboard')
+      if (isDev) {
+        window.open('/admin', '_blank')
+        router.push('/dashboard')
+      } else {
+        router.push('/dashboard')
+      }
       router.refresh()
     }, 900)
   }

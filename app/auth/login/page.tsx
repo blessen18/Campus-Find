@@ -28,13 +28,27 @@ export default function LoginPage() {
 
     const cleanEmail = email.trim().toLowerCase()
 
+    // Check if user is either primary developer or whitelisted developer
+    let isWhitelistedDev = isDeveloperEmail(cleanEmail)
+    if (!isWhitelistedDev && typeof window !== 'undefined') {
+      try {
+        const rawList = localStorage.getItem('campusfind_developer_whitelist')
+        if (rawList) {
+          const devs = JSON.parse(rawList) as string[]
+          if (Array.isArray(devs) && devs.map(d => d.toLowerCase()).includes(cleanEmail)) {
+            isWhitelistedDev = true
+          }
+        }
+      } catch (e) {}
+    }
+
     if (loginType === 'developer') {
-      if (!isDeveloperEmail(cleanEmail)) {
-        setError(`Access denied. Developer login is strictly restricted to ${DEVELOPER_EMAIL}.`)
+      if (!isWhitelistedDev) {
+        setError(`Access denied. Developer login is restricted to authorized developer accounts (${DEVELOPER_EMAIL}).`)
         return
       }
     } else {
-      if (!isAjceEmail(cleanEmail) && !isDeveloperEmail(cleanEmail)) {
+      if (!isAjceEmail(cleanEmail) && !isWhitelistedDev) {
         setError('Please use your official Amal Jyothi email (e.g. yourname2030@cs.ajce.in)')
         return
       }
@@ -45,7 +59,7 @@ export default function LoginPage() {
     // Simulate login delay
     await new Promise(r => setTimeout(r, 500))
 
-    const isDev = isDeveloperEmail(cleanEmail)
+    const isDev = isWhitelistedDev
 
     // Check existing local user or create session
     const existingUser = getClientUser()
@@ -53,8 +67,10 @@ export default function LoginPage() {
       ...existingUser,
       role: isDev ? 'admin' : existingUser.role,
     } : {
-      id: isDev ? 'usr-dev-blessen' : ('usr-campus-' + Date.now()),
-      full_name: isDev ? 'Blesson Unnikrishnan (Developer)' : cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      id: isDev ? ('usr-dev-' + cleanEmail.split('@')[0]) : ('usr-campus-' + Date.now()),
+      full_name: isDev 
+        ? (cleanEmail === DEVELOPER_EMAIL.toLowerCase() ? 'Blesson Unnikrishnan (Lead Dev)' : `Developer (${cleanEmail.split('@')[0]})`)
+        : cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       email: cleanEmail,
       role: isDev ? 'admin' : 'student',
       department: 'Computer Science & Engineering',
@@ -67,9 +83,16 @@ export default function LoginPage() {
     }
 
     setClientSession(activeProfile)
-    success('Welcome back!', isDev ? 'Signed in with Developer privileges' : `Signed in as ${activeProfile.full_name}`)
+    success('Welcome back!', isDev ? 'Developer session established' : `Signed in as ${activeProfile.full_name}`)
     setLoading(false)
-    router.push(isDev ? '/admin' : '/dashboard')
+
+    if (isDev) {
+      // Open the master developer console in a clean dedicated tab/window
+      window.open('/admin', '_blank')
+      router.push('/dashboard')
+    } else {
+      router.push('/dashboard')
+    }
     router.refresh()
   }
 

@@ -2,11 +2,11 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Calendar, MapPin, User, ArrowLeft, Phone, Mail, MessageSquare, ShieldCheck } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getServerUser } from '@/lib/supabase/server'
 import { formatDate, formatRelativeTime, STATUS_COLORS, STATUS_LABELS, TYPE_LABELS, TYPE_COLORS } from '@/lib/utils'
 import { ItemDetailClient } from './ItemDetailClient'
 import { INITIAL_CAMPUS_ITEMS } from '@/data/initialItems'
-import type { Item } from '@/types'
+import type { Item, Profile } from '@/types'
 import type { Metadata } from 'next'
 
 interface Props { params: { id: string } }
@@ -45,24 +45,11 @@ export default async function ItemDetailPage({ params }: Props) {
   const item = await getItem(params.id)
   if (!item) notFound()
 
-  let user = null
-  let userProfile = null
-
-  try {
-    const supabase = await createClient()
-    const { data } = await supabase.auth.getUser()
-    user = data.user
-    if (user) {
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      userProfile = prof
-    }
-  } catch (e) {
-    // ignore
-  }
-
-  const isOwner = user?.id === item.reported_by
+  const userProfile = await getServerUser()
+  const userId = userProfile?.id || null
+  const isOwner = userId === item.reported_by
   const isAdmin = userProfile?.role === 'admin'
-  const canClaim = user && !isOwner && item.type === 'found' && item.status === 'active'
+  const canClaim = !!userId && !isOwner && item.type === 'found' && item.status === 'active'
 
   const images = item.images?.map((path: string) =>
     path.startsWith('http')
@@ -157,7 +144,7 @@ export default async function ItemDetailPage({ params }: Props) {
         <div className="space-y-5">
           <ItemDetailClient
             item={item}
-            userId={user?.id || null}
+            userId={userId}
             userRole={userProfile?.role || null}
             isOwner={isOwner}
             isAdmin={isAdmin}
