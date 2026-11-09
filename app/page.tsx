@@ -115,44 +115,58 @@ export default async function HomePage() {
           </div>
 
           {/* Action Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto pt-4 text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto pt-4 text-left">
             <Link
               href="/report/lost"
-              className="p-5 rounded-xl bg-red-50 border border-red-200 hover:border-red-400 hover:shadow-md transition-all group flex items-start gap-4"
+              className="group relative overflow-hidden rounded-2xl bg-white p-5 sm:p-6 border border-slate-200/90 shadow-sm hover:shadow-lg hover:border-rose-300 transition-all duration-200 flex flex-col justify-between"
             >
-              <div className="w-11 h-11 rounded-xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform shadow-xs">
-                <Search className="w-5 h-5" strokeWidth={2.5} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-slate-900 group-hover:text-red-700 transition-colors text-sm">
-                    I Lost Something
-                  </h3>
-                  <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-red-500 transition-colors" />
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-rose-600 opacity-80 group-hover:opacity-100 transition-opacity" />
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-11 h-11 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-rose-100/80 transition-all shadow-xs">
+                    <Search className="w-5 h-5 text-rose-600" strokeWidth={2.2} />
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold tracking-wide uppercase px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-100">
+                    Lost Report
+                  </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Post details so campus finders can notify you quickly.
+                <h3 className="font-bold text-slate-900 group-hover:text-rose-700 transition-colors text-base tracking-tight mb-1">
+                  I Lost Something
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Submit details, photos, and location so finders across campus can identify and return your item.
                 </p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-rose-600 group-hover:text-rose-700">
+                <span>Start Lost Report</span>
+                <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
               </div>
             </Link>
 
             <Link
               href="/report/found"
-              className="p-5 rounded-xl bg-green-50 border border-green-200 hover:border-green-400 hover:shadow-md transition-all group flex items-start gap-4"
+              className="group relative overflow-hidden rounded-2xl bg-white p-5 sm:p-6 border border-slate-200/90 shadow-sm hover:shadow-lg hover:border-emerald-300 transition-all duration-200 flex flex-col justify-between"
             >
-              <div className="w-11 h-11 rounded-xl bg-green-100 text-green-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform shadow-xs">
-                <CheckCircle2 className="w-5 h-5" strokeWidth={2.5} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-slate-900 group-hover:text-green-700 transition-colors text-sm">
-                    I Found Something
-                  </h3>
-                  <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-green-500 transition-colors" />
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-emerald-600 opacity-80 group-hover:opacity-100 transition-opacity" />
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-emerald-100/80 transition-all shadow-xs">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" strokeWidth={2.2} />
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold tracking-wide uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    Found Report
+                  </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Help a classmate recover their item securely.
+                <h3 className="font-bold text-slate-900 group-hover:text-emerald-700 transition-colors text-base tracking-tight mb-1">
+                  I Found Something
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Log an item you discovered on campus so the verified owner can claim and safely collect it.
                 </p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-emerald-600 group-hover:text-emerald-700">
+                <span>Start Found Report</span>
+                <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
               </div>
             </Link>
           </div>

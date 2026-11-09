@@ -6,7 +6,7 @@ Built with **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS**, and **
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
 1. **Dual Reporting Workflows**:
    - **Report Lost Item**: Detailed description, category, date, approximate campus location, optional photo uploads, and confidential identifying markers.
@@ -32,7 +32,7 @@ Built with **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS**, and **
 
 ---
 
-## 🚀 Quick Setup & Installation
+## Quick Setup & Installation
 
 ### 1. Prerequisites
 - Node.js 18+ (tested on Node.js v20+)
@@ -72,7 +72,7 @@ Open [http://localhost:3006](http://localhost:3006) in your browser.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 campusfind/
@@ -120,7 +120,7 @@ campusfind/
 
 ---
 
-## 🔒 Security Best Practices
+## Security Best Practices
 - **Row Level Security (RLS)** is strictly enforced across all database tables.
 - **Service Role Key** is never exposed to browser bundles (server-side only).
 - **Claim Isolation**: Regular users cannot see proof attachments or confidential identifying markers of other users.
