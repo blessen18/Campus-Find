@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { Search, CheckCircle2, MessageSquare, Mail, Phone, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { ImageUpload } from './ImageUpload'
 import { generateSafeFileName, CATEGORIES, CAMPUS_LOCATIONS } from '@/lib/utils'
@@ -247,7 +248,7 @@ export function ReportForm({ defaultType }: ReportFormProps) {
               }`}
             >
               <input type="radio" name="type" value={t} className="sr-only" checked={form.type === t} onChange={() => set('type', t)} />
-              <span className="text-xl">{t === 'lost' ? '😟' : '✅'}</span>
+              {t === 'lost' ? <Search className="w-4 h-4 text-rose-600" /> : <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
               <span className="font-bold text-sm capitalize">{t} Item</span>
             </label>
           ))}
@@ -279,7 +280,7 @@ export function ReportForm({ defaultType }: ReportFormProps) {
             className={`input ${errors.category_id ? 'input-error' : ''}`}
           >
             <option value="">Select category…</option>
-            {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+            {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           {errors.category_id && <p className="error-msg">{errors.category_id}</p>}
         </div>
@@ -381,7 +382,12 @@ export function ReportForm({ defaultType }: ReportFormProps) {
                 checked={form.contact_preference === pref}
                 onChange={() => set('contact_preference', pref)}
               />
-              <span>{pref === 'platform' ? '💬 CampusFind' : pref === 'email' ? '📧 Email' : '📱 Phone'}</span>
+              <span className="flex items-center gap-1.5">
+                {pref === 'platform' && <MessageSquare className="w-3.5 h-3.5 text-blue-600" />}
+                {pref === 'email' && <Mail className="w-3.5 h-3.5 text-blue-600" />}
+                {pref === 'phone' && <Phone className="w-3.5 h-3.5 text-blue-600" />}
+                <span>{pref === 'platform' ? 'CampusFind' : pref === 'email' ? 'Email' : 'Phone'}</span>
+              </span>
             </label>
           ))}
         </div>

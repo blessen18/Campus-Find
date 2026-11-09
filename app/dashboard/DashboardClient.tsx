@@ -7,6 +7,7 @@ import {
   Trash2, ExternalLink, AlertCircle, Check, Eye
 } from 'lucide-react'
 import { formatDate, formatRelativeTime, STATUS_COLORS, STATUS_LABELS, TYPE_LABELS, TYPE_COLORS, isDeveloperEmail } from '@/lib/utils'
+import { CategoryIcon } from '@/components/CategoryIcon'
 import { useToast } from '@/components/providers/ToastProvider'
 import type { Item, Claim, Profile } from '@/types'
 
@@ -307,7 +308,9 @@ export function DashboardClient({ initialItems, initialClaims, currentUser }: Pr
                         <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
                           <td className="px-4 py-3.5">
                             <div className="flex items-center gap-3">
-                              <span className="text-lg flex-shrink-0">{item.category?.icon || '📦'}</span>
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 flex-shrink-0">
+                                <CategoryIcon category={item.category_id || item.category?.name} className="w-4 h-4" />
+                              </div>
                               <div className="min-w-0">
                                 <Link 
                                   href={`/items/${item.id}`}

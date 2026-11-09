@@ -76,6 +76,14 @@ export function isValidEmail(email: string): boolean {
 export const DEVELOPER_EMAIL = 'blessenunnikrishnan@gmail.com'
 
 /**
+ * Checks if the configured Supabase URL is placeholder or offline.
+ */
+export function isPlaceholderSupabase(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  return !url || url.includes('placeholder') || url.includes('mock')
+}
+
+/**
  * Checks if the given email is the designated developer/superadmin account.
  */
 export function isDeveloperEmail(email: string): boolean {
@@ -139,15 +147,15 @@ export function generateId(): string {
 }
 
 export const CATEGORIES = [
-  { id: 'electronics',  name: 'Electronics',   icon: '📱' },
-  { id: 'clothing',     name: 'Clothing',       icon: '👕' },
-  { id: 'bags',         name: 'Bags & Wallets', icon: '🎒' },
-  { id: 'books',        name: 'Books & Notes',  icon: '📚' },
-  { id: 'accessories',  name: 'Accessories',    icon: '⌚' },
-  { id: 'keys',         name: 'Keys & Cards',   icon: '🔑' },
-  { id: 'documents',    name: 'Documents & ID', icon: '🪪' },
-  { id: 'sports',       name: 'Sports & Gym',   icon: '⚽' },
-  { id: 'other',        name: 'Other',          icon: '📦' },
+  { id: 'electronics',  name: 'Electronics',   icon: '' },
+  { id: 'clothing',     name: 'Clothing',       icon: '' },
+  { id: 'bags',         name: 'Bags & Wallets', icon: '' },
+  { id: 'books',        name: 'Books & Notes',  icon: '' },
+  { id: 'accessories',  name: 'Accessories',    icon: '' },
+  { id: 'keys',         name: 'Keys & Cards',   icon: '' },
+  { id: 'documents',    name: 'Documents & ID', icon: '' },
+  { id: 'sports',       name: 'Sports & Gym',   icon: '' },
+  { id: 'other',        name: 'Other',          icon: '' },
 ]
 
 export const CAMPUS_LOCATIONS = [

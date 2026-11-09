@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Menu, X, Bell, User as UserIcon, LogOut, ChevronDown, Search, Compass } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getClientUser, clearClientSession } from '@/lib/auth'
-import { cn } from '@/lib/utils'
+import { cn, isPlaceholderSupabase } from '@/lib/utils'
 import type { Profile, Notification } from '@/types'
 
 const NAV_LINKS = [
@@ -28,6 +28,14 @@ export function Navbar() {
   // ── Auth state ──────────────────────────────────────────────────────
   useEffect(() => {
     async function loadUser() {
+      // If placeholder or offline, resolve instantly from local session (0ms delay)
+      if (isPlaceholderSupabase()) {
+        const local = getClientUser()
+        if (local) setUser(local)
+        setLoading(false)
+        return
+      }
+
       try {
         const { data } = await supabase.auth.getUser()
         if (data?.user) {
@@ -57,6 +65,12 @@ export function Navbar() {
       setUser(local)
     }
     window.addEventListener('campusfind_auth_change', onAuthChange)
+
+    if (isPlaceholderSupabase()) {
+      return () => {
+        window.removeEventListener('campusfind_auth_change', onAuthChange)
+      }
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {

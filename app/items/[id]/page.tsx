@@ -1,6 +1,6 @@
 import { createClient, getServerUser } from '@/lib/supabase/server'
 import { getServerItemById } from '@/lib/serverStorage'
-import { TYPE_LABELS } from '@/lib/utils'
+import { TYPE_LABELS, isPlaceholderSupabase } from '@/lib/utils'
 import { ItemDetailView } from './ItemDetailView'
 import type { Item } from '@/types'
 import type { Metadata } from 'next'
@@ -8,22 +8,24 @@ import type { Metadata } from 'next'
 interface Props { params: { id: string } }
 
 async function getItem(id: string): Promise<Item | null> {
-  try {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-      .from('items')
-      .select(`
-        *,
-        category:categories(id, name, slug, icon),
-        location:locations(id, name),
-        reporter:profiles(id, full_name, role, department)
-      `)
-      .eq('id', id)
-      .neq('status', 'removed')
-      .single()
-    if (!error && data) return data as Item
-  } catch (err) {
-    // fallback
+  if (!isPlaceholderSupabase()) {
+    try {
+      const supabase = await createClient()
+      const { data, error } = await supabase
+        .from('items')
+        .select(`
+          *,
+          category:categories(id, name, slug, icon),
+          location:locations(id, name),
+          reporter:profiles(id, full_name, role, department)
+        `)
+        .eq('id', id)
+        .neq('status', 'removed')
+        .single()
+      if (!error && data) return data as Item
+    } catch (err) {
+      // fallback
+    }
   }
 
   // Fallback to server shared storage (supports multi-device & offline reports)

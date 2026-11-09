@@ -1,6 +1,6 @@
 'use client'
 
-import { Plus, LayoutGrid, List, ShieldCheck } from 'lucide-react'
+import { Plus, LayoutGrid, List, ShieldCheck, Package } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { ItemCard, ItemRow, ItemCardSkeleton } from '@/components/ItemCard'
@@ -87,7 +87,9 @@ export default function FoundItemsPage() {
           </div>
         ) : items.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 py-16 px-4 text-center max-w-md mx-auto shadow-sm">
-            <div className="text-4xl mb-3">📦</div>
+            <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400 mb-3">
+              <Package className="w-6 h-6" />
+            </div>
             <h3 className="font-bold text-slate-900 text-base mb-1">No found items match your criteria</h3>
             <p className="text-xs text-slate-500 mb-5 leading-relaxed">
               Items are registered as soon as turned into campus security or department desks. Check back regularly.

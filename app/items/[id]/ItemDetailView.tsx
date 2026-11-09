@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Calendar, MapPin, User, ArrowLeft, ShieldCheck, AlertCircle } from 'lucide-react'
+import { Calendar, MapPin, User, ArrowLeft, ShieldCheck, AlertCircle, Check } from 'lucide-react'
 import { formatDate, formatRelativeTime, STATUS_COLORS, STATUS_LABELS, TYPE_LABELS, TYPE_COLORS } from '@/lib/utils'
+import { CategoryIcon } from '@/components/CategoryIcon'
 import { ItemDetailClient } from './ItemDetailClient'
 import { getClientUser } from '@/lib/auth'
 import type { Item, Profile } from '@/types'
@@ -116,8 +117,8 @@ export function ItemDetailView({ initialItem, id, serverUser }: Props) {
                 <Image src={images[0]} alt={item.title} fill className="object-cover" priority unoptimized={images[0].startsWith('data:')} />
               </div>
             ) : (
-              <div className="h-56 flex items-center justify-center bg-slate-50 text-5xl">
-                {item.category?.icon || '📦'}
+              <div className="h-56 flex items-center justify-center bg-slate-50 text-slate-400">
+                <CategoryIcon category={item.category_id || item.category?.name} className="w-16 h-16 stroke-[1.25]" />
               </div>
             )}
             {images.length > 1 && (
@@ -141,8 +142,9 @@ export function ItemDetailView({ initialItem, id, serverUser }: Props) {
                 {STATUS_LABELS[item.status]}
               </span>
               {item.category && (
-                <span className="badge bg-slate-100 text-slate-700 ring-1 ring-slate-200 text-xs px-2.5 py-1">
-                  {item.category.icon} {item.category.name}
+                <span className="badge bg-slate-100 text-slate-700 ring-1 ring-slate-200 text-xs px-2.5 py-1 inline-flex items-center gap-1.5">
+                  <CategoryIcon category={item.category_id || item.category.name} className="w-3.5 h-3.5" />
+                  <span>{item.category.name}</span>
                 </span>
               )}
             </div>
@@ -202,11 +204,11 @@ export function ItemDetailView({ initialItem, id, serverUser }: Props) {
             </p>
             <ul className="text-xs text-slate-600 space-y-2 border-t border-slate-100 pt-3">
               <li className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold">✓</span>
+                <Check className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 mt-0.5" />
                 <span>Bring valid student/faculty ID during claim retrieval.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold">✓</span>
+                <Check className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 mt-0.5" />
                 <span>Be ready to unlock device or describe specific marks.</span>
               </li>
             </ul>

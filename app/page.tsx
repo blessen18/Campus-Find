@@ -1,10 +1,21 @@
 import Link from 'next/link'
-import { Search, ArrowUpRight, ArrowRight, ShieldCheck, MapPin, Clock } from 'lucide-react'
+import { Search, ArrowUpRight, ArrowRight, ShieldCheck, MapPin, Clock, FileText, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { HomeRecentFeeds } from '@/components/HomeRecentFeeds'
+import { isPlaceholderSupabase } from '@/lib/utils'
 import type { Item } from '@/types'
 
 async function getHomeData() {
+  if (isPlaceholderSupabase()) {
+    return {
+      recentLost: [],
+      recentFound: [],
+      totalLost: 0,
+      totalFound: 0,
+      totalResolved: 0,
+    }
+  }
+
   try {
     const supabase = await createClient()
     const [lostRes, foundRes, totalResolvedRes] = await Promise.all([
@@ -106,8 +117,8 @@ export default async function HomePage() {
               href="/report/lost"
               className="p-5 rounded-xl bg-red-50 border border-red-200 hover:border-red-400 hover:shadow-md transition-all group flex items-start gap-4"
             >
-              <div className="w-11 h-11 rounded-xl bg-red-100 text-red-600 flex items-center justify-center text-xl flex-shrink-0 group-hover:scale-105 transition-transform">
-                😟
+              <div className="w-11 h-11 rounded-xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <Search className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
@@ -126,8 +137,8 @@ export default async function HomePage() {
               href="/report/found"
               className="p-5 rounded-xl bg-green-50 border border-green-200 hover:border-green-400 hover:shadow-md transition-all group flex items-start gap-4"
             >
-              <div className="w-11 h-11 rounded-xl bg-green-100 text-green-700 flex items-center justify-center text-xl flex-shrink-0 group-hover:scale-105 transition-transform">
-                🤝
+              <div className="w-11 h-11 rounded-xl bg-green-100 text-green-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <CheckCircle2 className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
@@ -164,7 +175,7 @@ export default async function HomePage() {
             {[
               {
                 step: '1',
-                icon: '📋',
+                Icon: FileText,
                 title: 'Report',
                 desc: 'Submit a detailed report with photos, description, and where you last saw the item.',
                 color: 'bg-blue-50 border-blue-200',
@@ -172,7 +183,7 @@ export default async function HomePage() {
               },
               {
                 step: '2',
-                icon: '🔍',
+                Icon: Search,
                 title: 'Match',
                 desc: 'Campus staff and community members search the database to identify and secure the item.',
                 color: 'bg-amber-50 border-amber-200',
@@ -180,20 +191,22 @@ export default async function HomePage() {
               },
               {
                 step: '3',
-                icon: '🤝',
+                Icon: ShieldCheck,
                 title: 'Reunite',
                 desc: 'Owner verifies identity and collects their item from the campus security office.',
                 color: 'bg-green-50 border-green-200',
                 num: 'bg-green-600',
               },
-            ].map(s => (
-              <div key={s.step} className={`rounded-xl border p-6 text-left ${s.color}`}>
-                <div className={`w-8 h-8 rounded-full ${s.num} text-white text-sm font-bold flex items-center justify-center mb-4`}>
-                  {s.step}
+            ].map(({ step, Icon, title, desc, color, num }) => (
+              <div key={step} className={`rounded-xl border p-6 text-left ${color}`}>
+                <div className={`w-8 h-8 rounded-full ${num} text-white text-sm font-bold flex items-center justify-center mb-4`}>
+                  {step}
                 </div>
-                <div className="text-3xl mb-3">{s.icon}</div>
-                <h3 className="font-bold text-slate-900 mb-1">{s.title}</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">{s.desc}</p>
+                <div className="w-10 h-10 rounded-xl bg-white/80 border border-slate-200/60 flex items-center justify-center text-slate-800 mb-3 shadow-2xs">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-slate-900 mb-1">{title}</h3>
+                <p className="text-xs text-slate-600 leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>

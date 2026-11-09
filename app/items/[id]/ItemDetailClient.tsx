@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Edit, CheckCircle, AlertTriangle, Trash2, Check } from 'lucide-react'
+import { Edit, CheckCircle, AlertTriangle, Trash2, Check, ShieldCheck } from 'lucide-react'
 import { ClaimModal } from '@/components/ClaimModal'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -181,7 +181,10 @@ export function ItemDetailClient({ item, userId, userRole, isOwner, isAdmin, can
             onClick={() => setShowClaimModal(true)}
             className="btn bg-blue-600 hover:bg-blue-700 text-white w-full justify-center text-xs py-2.5 rounded-lg font-semibold shadow-xs"
           >
-            🙋 This is Mine — Claim It
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Claim This Item</span>
+            </span>
           </button>
         )}
 

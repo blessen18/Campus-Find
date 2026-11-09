@@ -77,7 +77,9 @@ export default function LostItemsPage() {
           </div>
         ) : items.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 py-16 px-4 text-center max-w-md mx-auto shadow-sm">
-            <div className="text-4xl mb-3">🔎</div>
+            <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400 mb-3">
+              <Search className="w-6 h-6" />
+            </div>
             <h3 className="font-bold text-slate-900 text-base mb-1">No lost items match your search</h3>
             <p className="text-xs text-slate-500 mb-5 leading-relaxed">
               Try adjusting your category, keyword, or campus location filters.

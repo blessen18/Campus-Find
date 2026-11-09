@@ -75,7 +75,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       await adminClient.from('notifications').insert({
         user_id: claim.claimant_id,
         type: 'claim_approved',
-        title: 'Claim Approved! 🎉',
+        title: 'Claim Approved',
         message: `Your claim for "${claim.item?.title}" was approved by the campus admin. You may now retrieve your item. ${admin_notes ? `Notes: ${admin_notes}` : ''}`,
         link: `/items/${claim.item_id}`,
       })

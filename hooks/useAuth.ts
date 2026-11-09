@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getClientUser } from '@/lib/auth'
+import { isPlaceholderSupabase } from '@/lib/utils'
 import type { Profile } from '@/types'
 
 export function useAuth() {
@@ -12,6 +13,13 @@ export function useAuth() {
 
   useEffect(() => {
     async function initUser() {
+      if (isPlaceholderSupabase()) {
+        const local = getClientUser()
+        if (local) setUser(local)
+        setLoading(false)
+        return
+      }
+
       try {
         const { data } = await supabase.auth.getUser()
         if (data?.user) {
@@ -38,6 +46,12 @@ export function useAuth() {
       setUser(local)
     }
     window.addEventListener('campusfind_auth_change', onAuthChange)
+
+    if (isPlaceholderSupabase()) {
+      return () => {
+        window.removeEventListener('campusfind_auth_change', onAuthChange)
+      }
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_, session) => {
       if (session?.user) {

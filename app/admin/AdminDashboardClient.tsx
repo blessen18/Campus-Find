@@ -13,6 +13,7 @@ import {
   TYPE_COLORS, TYPE_LABELS, 
   DEVELOPER_EMAIL 
 } from '@/lib/utils'
+import { CategoryIcon } from '@/components/CategoryIcon'
 import { INITIAL_CAMPUS_ITEMS } from '@/data/initialItems'
 import type { Item, Claim, Profile } from '@/types'
 
@@ -309,8 +310,9 @@ export function AdminDashboardClient({
               </p>
             </div>
             {isSuperDev && (
-              <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full flex-shrink-0">
-                ⭐ Primary Authority
+              <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-full flex-shrink-0 inline-flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                <span>Primary Authority</span>
               </span>
             )}
           </div>
@@ -451,7 +453,9 @@ export function AdminDashboardClient({
                       <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-start gap-2.5">
-                            <span className="text-lg mt-0.5">{item.category?.icon || '📦'}</span>
+                            <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 flex-shrink-0 mt-0.5">
+                              <CategoryIcon category={item.category_id || item.category?.name} className="w-3.5 h-3.5" />
+                            </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-slate-900 truncate max-w-[220px]">
                                 {item.title}
@@ -539,7 +543,7 @@ export function AdminDashboardClient({
 
           {claims.length === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-200 py-10 text-center p-6 shadow-xs">
-              <p className="text-sm text-slate-600 font-medium">All claim requests are processed! 🎉</p>
+              <p className="text-sm text-slate-600 font-medium">All claim requests have been processed.</p>
               <p className="text-xs text-slate-400 mt-1">When students submit ownership claims on found items, they will appear here.</p>
             </div>
           ) : (

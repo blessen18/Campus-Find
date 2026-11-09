@@ -56,9 +56,6 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    // Simulate login delay
-    await new Promise(r => setTimeout(r, 500))
-
     const isAdmin = isWhitelistedAdmin
 
     // Check existing local user or create session

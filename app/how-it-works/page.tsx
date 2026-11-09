@@ -12,8 +12,9 @@ export default function HowItWorksPage() {
       {/* Header */}
       <div className="bg-white border-b border-slate-200 py-10">
         <div className="container-page max-w-4xl text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-            <span>🛡️ Official Security Protocol</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+            <span>Official Security Protocol</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             How CampusFind Works

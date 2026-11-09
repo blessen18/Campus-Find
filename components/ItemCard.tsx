@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Calendar, MapPin, ArrowRight } from 'lucide-react'
 import { cn, formatDate, STATUS_COLORS, STATUS_LABELS, TYPE_COLORS, TYPE_LABELS } from '@/lib/utils'
+import { CategoryIcon } from '@/components/CategoryIcon'
 import type { Item } from '@/types'
 
 interface ItemCardProps {
@@ -32,8 +33,8 @@ export function ItemCard({ item, showType = false }: ItemCardProps) {
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-4xl bg-slate-50 text-slate-400">
-            {item.category?.icon || '📦'}
+          <div className="flex items-center justify-center h-full bg-slate-50 text-slate-400">
+            <CategoryIcon category={item.category_id || item.category?.name} className="w-10 h-10 stroke-[1.5]" />
           </div>
         )}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
@@ -51,8 +52,8 @@ export function ItemCard({ item, showType = false }: ItemCardProps) {
       {/* Content */}
       <div className="p-4 flex flex-col flex-1">
         {item.category && (
-          <span className="text-xs font-medium text-blue-600 mb-1.5 flex items-center gap-1">
-            <span>{item.category.icon}</span>
+          <span className="text-xs font-medium text-blue-600 mb-1.5 flex items-center gap-1.5">
+            <CategoryIcon category={item.category_id || item.category?.name} className="w-3.5 h-3.5" />
             <span>{item.category.name}</span>
           </span>
         )}
@@ -99,8 +100,8 @@ export function ItemRow({ item }: { item: Item }) {
         {imageUrl ? (
           <Image src={imageUrl} alt={item.title} fill className="object-cover" sizes="64px" />
         ) : (
-          <div className="flex items-center justify-center h-full text-2xl">
-            {item.category?.icon || '📦'}
+          <div className="flex items-center justify-center h-full text-slate-400">
+            <CategoryIcon category={item.category_id || item.category?.name} className="w-6 h-6 stroke-[1.5]" />
           </div>
         )}
       </div>

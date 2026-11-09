@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { INITIAL_CAMPUS_ITEMS } from '@/data/initialItems'
+import { isPlaceholderSupabase } from '@/lib/utils'
 import type { Item, ItemFilters } from '@/types'
 
 const DEFAULT_FILTERS: ItemFilters = {
@@ -25,32 +26,39 @@ export function useItems(type?: 'lost' | 'found') {
   const fetchItems = useCallback(async () => {
     setLoading(true)
     try {
-      let query = supabase
-        .from('items')
-        .select(`
-          *,
-          category:categories(id, name, slug, icon),
-          location:locations(id, name),
-          reporter:profiles(id, full_name)
-        `, { count: 'exact' })
-        .neq('status', 'removed')
-
-      if (type) query = query.eq('type', type)
-      if (filters.status) query = query.eq('status', filters.status)
-      if (filters.category) query = query.eq('category_id', filters.category)
-      if (filters.search) query = query.ilike('title', `%${filters.search}%`)
-      if (filters.dateFrom) query = query.gte('date_occurred', filters.dateFrom)
-      if (filters.dateTo)   query = query.lte('date_occurred', filters.dateTo)
-
-      query = filters.sortBy === 'newest'
-        ? query.order('created_at', { ascending: false })
-        : query.order('created_at', { ascending: true })
-
-      const { data, count, error } = await query
-
       let fetchedItems: Item[] = []
-      if (!error && data && data.length > 0) {
-        fetchedItems = data as Item[]
+
+      // Only query Supabase if a real project is connected (avoids network timeout delay)
+      if (!isPlaceholderSupabase()) {
+        try {
+          let query = supabase
+            .from('items')
+            .select(`
+              *,
+              category:categories(id, name, slug, icon),
+              location:locations(id, name),
+              reporter:profiles(id, full_name)
+            `, { count: 'exact' })
+            .neq('status', 'removed')
+
+          if (type) query = query.eq('type', type)
+          if (filters.status) query = query.eq('status', filters.status)
+          if (filters.category) query = query.eq('category_id', filters.category)
+          if (filters.search) query = query.ilike('title', `%${filters.search}%`)
+          if (filters.dateFrom) query = query.gte('date_occurred', filters.dateFrom)
+          if (filters.dateTo)   query = query.lte('date_occurred', filters.dateTo)
+
+          query = filters.sortBy === 'newest'
+            ? query.order('created_at', { ascending: false })
+            : query.order('created_at', { ascending: true })
+
+          const { data, error } = await query
+          if (!error && data && data.length > 0) {
+            fetchedItems = data as Item[]
+          }
+        } catch (supabaseErr) {
+          // Fallback immediately
+        }
       }
 
       // Fetch shared items from server API (items from all users/devices)
@@ -128,6 +136,8 @@ export function useItems(type?: 'lost' | 'found') {
 
   // ── Realtime subscription ─────────────────────────────────────────────────
   useEffect(() => {
+    if (isPlaceholderSupabase()) return
+
     try {
       const channel = supabase
         .channel(`items-realtime-${type || 'all'}`)

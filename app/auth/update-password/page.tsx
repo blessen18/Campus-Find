@@ -48,7 +48,9 @@ export default function UpdatePasswordPage() {
     <div className="min-h-[70vh] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="text-3xl mb-2">🔐</div>
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3 shadow-xs">
+            <Lock className="w-6 h-6" />
+          </div>
           <h1 className="text-2xl font-bold text-content">Set New Password</h1>
           <p className="text-sm text-content-muted mt-1">Enter your new secure password below</p>
         </div>

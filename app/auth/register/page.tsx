@@ -57,9 +57,6 @@ export default function RegisterPage() {
     setError('')
     setLoading(true)
 
-    // Simulate a small delay so the UI feels responsive
-    await new Promise(r => setTimeout(r, 600))
-
     const isDev = isDeveloperEmail(form.email)
 
     // Create profile
