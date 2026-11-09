@@ -445,3 +445,4 @@ export function DashboardClient({ initialItems, initialClaims, currentUser }: Pr
     </div>
   )
 }
+

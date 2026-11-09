@@ -147,3 +147,4 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: 'Failed to delete item' }, { status: 500 })
   }
 }
+

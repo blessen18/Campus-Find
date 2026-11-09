@@ -96,3 +96,4 @@ export async function removeServerItem(id: string): Promise<boolean> {
   persistCache()
   return true
 }
+

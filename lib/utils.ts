@@ -84,7 +84,7 @@ export function isDeveloperEmail(email: string): boolean {
 
 /**
  * Validates whether an email belongs to an official Amal Jyothi College of Engineering student/member.
- * Standard student email format: username<year>@<dept>.ajce.in (e.g. blessenunnikrishnan2030@cs.ajce.in)
+ * Standard student email format: username<year>@<dept>.ajce.in (e.g. student2026@cs.ajce.in)
  * Also supports @ajce.in and @ajce.edu.in for general campus addresses.
  */
 export function isAjceEmail(email: string): boolean {

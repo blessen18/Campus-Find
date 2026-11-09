@@ -49,7 +49,7 @@ export default function LoginPage() {
       }
     } else {
       if (!isAjceEmail(cleanEmail) && !isWhitelistedAdmin) {
-        setError('Please use your official Amal Jyothi email (e.g. yourname2030@cs.ajce.in)')
+        setError('Please use your official Amal Jyothi email (e.g. student2026@cs.ajce.in)')
         return
       }
     }
@@ -98,7 +98,7 @@ export default function LoginPage() {
 
   const fillDemoStudent = () => {
     setLoginType('student')
-    setEmail('blessenunnikrishnan2030@cs.ajce.in')
+    setEmail('student2026@cs.ajce.in')
     setPassword('Campus@2026!')
     setError('')
   }
@@ -190,7 +190,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder={loginType === 'admin' ? 'admin@gmail.com' : 'e.g. blessenunnikrishnan2030@cs.ajce.in'}
+                  placeholder={loginType === 'admin' ? 'admin@gmail.com' : 'e.g. student2026@cs.ajce.in'}
                   className="w-full border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors"
                   required
                 />

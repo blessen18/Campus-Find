@@ -64,7 +64,7 @@ export default function RegisterPage() {
 
     // Create profile
     const profile: Profile = {
-      id: isDev ? 'usr-dev-blessen' : 'usr-' + Date.now(),
+      id: isDev ? 'usr-dev-admin' : 'usr-' + Date.now(),
       full_name: form.full_name.trim(),
       email: form.email.trim().toLowerCase(),
       role: isDev ? 'admin' : form.role,
@@ -171,13 +171,13 @@ export default function RegisterPage() {
                   type="email"
                   value={form.email}
                   onChange={e => setField('email', e.target.value)}
-                  placeholder="e.g. blessenunnikrishnan2030@cs.ajce.in"
+                  placeholder="e.g. student2026@cs.ajce.in"
                   className="w-full border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors"
                   required
                 />
               </div>
               <p className="text-[11px] text-slate-500 mt-1">
-                Must be your official AJCE student email (e.g. <span className="font-mono text-slate-700">username2030@cs.ajce.in</span>)
+                Must be your official AJCE student email (e.g. <span className="font-mono text-slate-700">student2026@cs.ajce.in</span>)
               </p>
             </div>
 
