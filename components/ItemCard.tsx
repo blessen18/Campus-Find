@@ -11,7 +11,7 @@ interface ItemCardProps {
 
 function resolveImageUrl(path?: string): string | null {
   if (!path) return null
-  if (path.startsWith('http')) return path
+  if (path.startsWith('http') || path.startsWith('data:')) return path
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/item-images/${path}`
 }
 

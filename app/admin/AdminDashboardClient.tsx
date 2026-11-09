@@ -61,6 +61,23 @@ export function AdminDashboardClient({
         }
       }
 
+      // Load custom user reported items
+      const rawCustom = localStorage.getItem(LOCAL_ITEMS_STORAGE_KEY)
+      if (rawCustom) {
+        const customItems = JSON.parse(rawCustom) as Item[]
+        if (Array.isArray(customItems) && customItems.length > 0) {
+          setItems(prev => {
+            const merged = [...prev]
+            for (const ci of customItems) {
+              if (!merged.some(m => m.id === ci.id)) {
+                merged.unshift(ci)
+              }
+            }
+            return merged
+          })
+        }
+      }
+
       // Load soft-removed items filter
       const removedIds = JSON.parse(localStorage.getItem(REMOVED_ITEMS_STORAGE_KEY) || '[]') as string[]
       if (removedIds.length > 0) {

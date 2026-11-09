@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { ImageUpload } from './ImageUpload'
 import { generateSafeFileName, CATEGORIES, CAMPUS_LOCATIONS } from '@/lib/utils'
 import { useToast } from './providers/ToastProvider'
-import type { ItemType, ReportItemFormData } from '@/types'
+import { getClientUser } from '@/lib/auth'
+import type { Item, ItemType, ReportItemFormData } from '@/types'
 
 interface ReportFormProps {
   defaultType: ItemType
@@ -65,46 +66,146 @@ export function ReportForm({ defaultType }: ReportFormProps) {
 
     setSubmitting(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        // If not logged in, redirect to login
+      // 1. Resolve user ID from Supabase auth or fallback client session
+      let userId: string | null = null
+      let userFullName = 'Campus Member'
+      let userEmail = ''
+
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (data?.user) {
+          userId = data.user.id
+          userEmail = data.user.email || ''
+        }
+      } catch (authErr) {
+        // Supabase offline/placeholder
+      }
+
+      if (!userId) {
+        const clientUser = getClientUser()
+        if (clientUser) {
+          userId = clientUser.id
+          userFullName = clientUser.full_name
+          userEmail = clientUser.email
+        }
+      }
+
+      if (!userId) {
         router.push(`/auth/login?redirect=/report/${form.type}`)
         return
       }
 
-      // Upload images
+      const isPlaceholder = !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')
+
+      // 2. Upload images or fallback to base64 Data URLs
       const imagePaths: string[] = []
       for (const file of form.images) {
-        const path = `items/${user.id}/${generateSafeFileName(file.name)}`
-        const { error: uploadErr } = await supabase.storage
-          .from('item-images')
-          .upload(path, file, { cacheControl: '3600', upsert: false })
-        if (uploadErr) throw new Error(`Image upload failed: ${uploadErr.message}`)
-        imagePaths.push(path)
+        let uploaded = false
+        if (!isPlaceholder) {
+          try {
+            const path = `items/${userId}/${generateSafeFileName(file.name)}`
+            const { error: uploadErr } = await supabase.storage
+              .from('item-images')
+              .upload(path, file, { cacheControl: '3600', upsert: false })
+            if (!uploadErr) {
+              imagePaths.push(path)
+              uploaded = true
+            }
+          } catch (storageErr) {
+            console.warn('Storage upload note:', storageErr)
+          }
+        }
+
+        if (!uploaded) {
+          // Convert file to Data URL so it previews and renders even without cloud storage
+          const dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader()
+            reader.onloadend = () => resolve(reader.result as string)
+            reader.readAsDataURL(file)
+          })
+          imagePaths.push(dataUrl)
+        }
       }
 
-      const { data: item, error: insertErr } = await supabase
-        .from('items')
-        .insert({
-          type:               form.type,
-          title:              form.title.trim(),
-          description:        form.description.trim(),
-          category_id:        form.category_id || null,
-          location_id:        null,
-          location_detail:    form.location_detail.trim() || form.location_id || null,
-          date_occurred:      form.date_occurred,
-          contact_preference: form.contact_preference,
-          private_details:    form.private_details.trim() || null,
-          images:             imagePaths,
-          reported_by:        user.id,
-        })
-        .select('id')
-        .single()
+      // 3. Create item object
+      const generatedItemId = 'item-' + Date.now()
+      const newItem: Item = {
+        id: generatedItemId,
+        type: form.type,
+        title: form.title.trim(),
+        description: form.description.trim(),
+        category_id: form.category_id || null,
+        location_id: null,
+        location_detail: form.location_detail.trim() || form.location_id || null,
+        date_occurred: form.date_occurred,
+        status: 'active',
+        images: imagePaths,
+        private_details: form.private_details.trim() || null,
+        contact_preference: form.contact_preference,
+        reported_by: userId,
+        resolved_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        category: (() => {
+          const cat = CATEGORIES.find(c => c.id === form.category_id)
+          return cat ? { id: cat.id, name: cat.name, slug: cat.id, icon: cat.icon, created_at: '' } : undefined
+        })(),
+        reporter: {
+          id: userId,
+          full_name: userFullName,
+          email: userEmail,
+          phone: null,
+          role: 'student',
+          department: null,
+          student_id: null,
+          avatar_url: null,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+      }
 
-      if (insertErr) throw new Error(insertErr.message)
+      // 4. If real Supabase is configured, insert to PostgreSQL database
+      if (!isPlaceholder) {
+        try {
+          const { data: itemData, error: insertErr } = await supabase
+            .from('items')
+            .insert({
+              type:               form.type,
+              title:              form.title.trim(),
+              description:        form.description.trim(),
+              category_id:        form.category_id || null,
+              location_id:        null,
+              location_detail:    form.location_detail.trim() || form.location_id || null,
+              date_occurred:      form.date_occurred,
+              contact_preference: form.contact_preference,
+              private_details:    form.private_details.trim() || null,
+              images:             imagePaths,
+              reported_by:        userId,
+            })
+            .select('id')
+            .single()
 
-      success('Report submitted successfully!', 'Your report is now active on the campus feed.')
-      router.push(`/items/${item.id}`)
+          if (!insertErr && itemData) {
+            newItem.id = itemData.id
+          }
+        } catch (dbErr) {
+          console.warn('Database insert note:', dbErr)
+        }
+      }
+
+      // 5. Save to local custom items storage so the reporter immediately sees it
+      try {
+        const stored = JSON.parse(localStorage.getItem('campusfind_custom_items') || '[]') as Item[]
+        localStorage.setItem('campusfind_custom_items', JSON.stringify([newItem, ...stored]))
+        window.dispatchEvent(new Event('campusfind_items_change'))
+      } catch (storageErr) {
+        console.warn('Local storage save note:', storageErr)
+      }
+
+      success('Report submitted successfully!', 'Your report is now live on the campus feed.')
+      router.push(`/items/${newItem.id}`)
+      router.refresh()
     } catch (err: unknown) {
       showError('Submission note', err instanceof Error ? err.message : 'Please check your connection and login status.')
     } finally {

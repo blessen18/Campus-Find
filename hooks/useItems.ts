@@ -48,13 +48,50 @@ export function useItems(type?: 'lost' | 'found') {
 
       const { data, count, error } = await query
 
-      if (error) {
-        setItems([])
-        setTotalCount(0)
-      } else {
-        setItems((data || []) as Item[])
-        setTotalCount(count || (data ? data.length : 0))
+      let fetchedItems: Item[] = []
+      if (!error && data && data.length > 0) {
+        fetchedItems = data as Item[]
       }
+
+      // Merge locally reported items (from localStorage)
+      if (typeof window !== 'undefined') {
+        try {
+          const rawCustom = localStorage.getItem('campusfind_custom_items')
+          if (rawCustom) {
+            const customItems = JSON.parse(rawCustom) as Item[]
+            if (Array.isArray(customItems)) {
+              for (const ci of customItems) {
+                if (!fetchedItems.some(fi => fi.id === ci.id)) {
+                  fetchedItems.unshift(ci)
+                }
+              }
+            }
+          }
+
+          // Filter out any items removed by admin/developer
+          const removedIds = JSON.parse(localStorage.getItem('campusfind_removed_item_ids') || '[]') as string[]
+          if (removedIds.length > 0) {
+            fetchedItems = fetchedItems.filter(i => !removedIds.includes(i.id))
+          }
+        } catch (e) {}
+      }
+
+      // Apply client-side filters
+      let result = [...fetchedItems]
+      if (type) result = result.filter(i => i.type === type)
+      if (filters.status) result = result.filter(i => i.status === filters.status)
+      if (filters.category) result = result.filter(i => i.category_id === filters.category)
+      if (filters.search) {
+        const s = filters.search.toLowerCase()
+        result = result.filter(i =>
+          i.title.toLowerCase().includes(s) ||
+          i.description.toLowerCase().includes(s) ||
+          (i.location_detail && i.location_detail.toLowerCase().includes(s))
+        )
+      }
+
+      setItems(result)
+      setTotalCount(result.length)
     } catch (err) {
       console.warn('Items query note:', err)
       setItems([])
@@ -64,7 +101,13 @@ export function useItems(type?: 'lost' | 'found') {
     }
   }, [type, filters])
 
-  useEffect(() => { fetchItems() }, [fetchItems])
+  useEffect(() => { 
+    fetchItems() 
+
+    const onItemsChange = () => fetchItems()
+    window.addEventListener('campusfind_items_change', onItemsChange)
+    return () => window.removeEventListener('campusfind_items_change', onItemsChange)
+  }, [fetchItems])
 
   // ── Realtime subscription ─────────────────────────────────────────────────
   useEffect(() => {
