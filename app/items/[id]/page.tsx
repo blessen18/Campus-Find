@@ -1,4 +1,5 @@
 import { createClient, getServerUser } from '@/lib/supabase/server'
+import { getServerItemById } from '@/lib/serverStorage'
 import { TYPE_LABELS } from '@/lib/utils'
 import { ItemDetailView } from './ItemDetailView'
 import type { Item } from '@/types'
@@ -24,6 +25,13 @@ async function getItem(id: string): Promise<Item | null> {
   } catch (err) {
     // fallback
   }
+
+  // Fallback to server shared storage (supports multi-device & offline reports)
+  try {
+    const serverItem = await getServerItemById(id)
+    if (serverItem) return serverItem
+  } catch (e) {}
+
   return null
 }
 

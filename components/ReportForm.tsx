@@ -194,7 +194,18 @@ export function ReportForm({ defaultType }: ReportFormProps) {
         }
       }
 
-      // 5. Save to local custom items storage so the reporter immediately sees it
+      // 5. Send to shared server items API so all devices and admin portal see it immediately
+      try {
+        await fetch('/api/items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newItem),
+        })
+      } catch (apiErr) {
+        console.warn('Server API save note:', apiErr)
+      }
+
+      // 6. Save to local custom items storage so the reporter immediately sees it
       try {
         const stored = JSON.parse(localStorage.getItem('campusfind_custom_items') || '[]') as Item[]
         localStorage.setItem('campusfind_custom_items', JSON.stringify([newItem, ...stored]))

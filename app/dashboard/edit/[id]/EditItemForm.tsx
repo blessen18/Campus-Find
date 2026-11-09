@@ -33,21 +33,49 @@ export function EditItemForm({ item }: Props) {
 
     setLoading(true)
     try {
-      const { error } = await supabase
-        .from('items')
-        .update({
-          title: title.trim(),
-          description: description.trim(),
-          category_id: categoryId || null,
-          location_detail: locationDetail.trim() || null,
-          status: status,
-          private_details: privateDetails.trim() || null,
-          resolved_at: status === 'resolved' ? new Date().toISOString() : item.resolved_at,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', item.id)
+      const updates = {
+        title: title.trim(),
+        description: description.trim(),
+        category_id: categoryId || null,
+        location_detail: locationDetail.trim() || null,
+        status: status,
+        private_details: privateDetails.trim() || null,
+        resolved_at: status === 'resolved' ? new Date().toISOString() : item.resolved_at,
+        updated_at: new Date().toISOString(),
+      }
 
-      if (error) throw error
+      // 1. Update Supabase if reachable
+      try {
+        await supabase.from('items').update(updates).eq('id', item.id)
+      } catch (dbErr) {
+        console.warn('DB update note:', dbErr)
+      }
+
+      // 2. Update server API
+      try {
+        await fetch(`/api/items/${item.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        })
+      } catch (apiErr) {
+        console.warn('API update note:', apiErr)
+      }
+
+      // 3. Update localStorage
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('campusfind_custom_items')
+          if (raw) {
+            const list = JSON.parse(raw) as Item[]
+            localStorage.setItem(
+              'campusfind_custom_items',
+              JSON.stringify(list.map(i => i.id === item.id ? { ...i, ...updates } : i))
+            )
+          }
+          window.dispatchEvent(new Event('campusfind_items_change'))
+        } catch (e) {}
+      }
 
       success('Report updated!', 'Your changes have been saved.')
       router.push(`/items/${item.id}`)

@@ -47,45 +47,68 @@ export function AdminDashboardClient({
   const [newDevEmail, setNewDevEmail] = useState('')
   const [devActionMsg, setDevActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  // Load local modifications & developer list from localStorage
+  // Load local modifications & developer list from localStorage + shared API
   useEffect(() => {
     if (typeof window === 'undefined') return
-    try {
-      // Load Whitelist
-      const savedDevs = localStorage.getItem(DEVS_STORAGE_KEY)
-      if (savedDevs) {
-        const parsed = JSON.parse(savedDevs) as string[]
-        if (Array.isArray(parsed)) {
-          const unique = Array.from(new Set([DEVELOPER_EMAIL.toLowerCase(), ...parsed.map(e => e.toLowerCase())]))
-          setWhitelistedDevs(unique)
-        }
-      }
 
-      // Load custom user reported items
-      const rawCustom = localStorage.getItem(LOCAL_ITEMS_STORAGE_KEY)
-      if (rawCustom) {
-        const customItems = JSON.parse(rawCustom) as Item[]
-        if (Array.isArray(customItems) && customItems.length > 0) {
-          setItems(prev => {
-            const merged = [...prev]
-            for (const ci of customItems) {
-              if (!merged.some(m => m.id === ci.id)) {
-                merged.unshift(ci)
-              }
+    const syncItems = async () => {
+      try {
+        // Load Whitelist
+        const savedDevs = localStorage.getItem(DEVS_STORAGE_KEY)
+        if (savedDevs) {
+          const parsed = JSON.parse(savedDevs) as string[]
+          if (Array.isArray(parsed)) {
+            const unique = Array.from(new Set([DEVELOPER_EMAIL.toLowerCase(), ...parsed.map(e => e.toLowerCase())]))
+            setWhitelistedDevs(unique)
+          }
+        }
+
+        // Fetch shared items from server API (cross-device reports)
+        let serverItems: Item[] = []
+        try {
+          const res = await fetch('/api/items')
+          if (res.ok) {
+            const data = await res.json()
+            if (data.items && Array.isArray(data.items)) {
+              serverItems = data.items
             }
-            return merged
-          })
-        }
-      }
+          }
+        } catch (e) {}
 
-      // Load soft-removed items filter
-      const removedIds = JSON.parse(localStorage.getItem(REMOVED_ITEMS_STORAGE_KEY) || '[]') as string[]
-      if (removedIds.length > 0) {
-        setItems(prev => prev.filter(item => !removedIds.includes(item.id)))
+        // Load custom user reported items from localStorage
+        let localCustom: Item[] = []
+        const rawCustom = localStorage.getItem(LOCAL_ITEMS_STORAGE_KEY)
+        if (rawCustom) {
+          try {
+            const parsed = JSON.parse(rawCustom)
+            if (Array.isArray(parsed)) localCustom = parsed
+          } catch (e) {}
+        }
+
+        const removedIds = JSON.parse(localStorage.getItem(REMOVED_ITEMS_STORAGE_KEY) || '[]') as string[]
+
+        setItems(prev => {
+          const merged = [...prev]
+          for (const item of [...serverItems, ...localCustom]) {
+            const existingIdx = merged.findIndex(m => m.id === item.id)
+            if (existingIdx >= 0) {
+              merged[existingIdx] = { ...merged[existingIdx], ...item }
+            } else {
+              merged.unshift(item)
+            }
+          }
+          return merged.filter(item => !removedIds.includes(item.id) && item.status !== 'removed')
+        })
+      } catch (e) {
+        console.warn('Storage sync issue:', e)
       }
-    } catch (e) {
-      console.warn('Storage sync issue:', e)
     }
+
+    syncItems()
+
+    const onItemsChange = () => syncItems()
+    window.addEventListener('campusfind_items_change', onItemsChange)
+    return () => window.removeEventListener('campusfind_items_change', onItemsChange)
   }, [])
 
   // Function to grant another Gmail developer access (SuperDev only)
@@ -137,11 +160,20 @@ export function AdminDashboardClient({
   }
 
   // Developer action: Instantly delete/remove a reported item
-  const handleRemoveItem = (itemId: string, itemTitle: string) => {
+  const handleRemoveItem = async (itemId: string, itemTitle: string) => {
     if (!confirm(`Are you sure you want to permanently remove "${itemTitle}" from the campus feed?`)) return
 
     // Update state
     setItems(prev => prev.filter(i => i.id !== itemId))
+
+    // Call server API
+    try {
+      await fetch(`/api/items/${itemId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caller: currentUser }),
+      })
+    } catch (e) {}
 
     // Save removal to localStorage so it persists across refreshes
     try {
@@ -150,11 +182,18 @@ export function AdminDashboardClient({
         removedIds.push(itemId)
         localStorage.setItem(REMOVED_ITEMS_STORAGE_KEY, JSON.stringify(removedIds))
       }
+      // Also clean up from local custom items if present
+      const rawCustom = localStorage.getItem(LOCAL_ITEMS_STORAGE_KEY)
+      if (rawCustom) {
+        const custom = JSON.parse(rawCustom) as Item[]
+        localStorage.setItem(LOCAL_ITEMS_STORAGE_KEY, JSON.stringify(custom.filter(c => c.id !== itemId)))
+      }
+      window.dispatchEvent(new Event('campusfind_items_change'))
     } catch (e) {}
   }
 
   // Developer action: Quick status toggle (Active / Resolved)
-  const handleToggleStatus = (itemId: string, currentStatus: string) => {
+  const handleToggleStatus = async (itemId: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'active' ? 'resolved' : 'active'
     setItems(prev => prev.map(item => {
       if (item.id === itemId) {
@@ -162,6 +201,28 @@ export function AdminDashboardClient({
       }
       return item
     }))
+
+    // Call server API
+    try {
+      await fetch(`/api/items/${itemId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus, caller: currentUser }),
+      })
+    } catch (e) {}
+
+    // Update localStorage
+    try {
+      const rawCustom = localStorage.getItem(LOCAL_ITEMS_STORAGE_KEY)
+      if (rawCustom) {
+        const custom = JSON.parse(rawCustom) as Item[]
+        localStorage.setItem(
+          LOCAL_ITEMS_STORAGE_KEY,
+          JSON.stringify(custom.map(c => c.id === itemId ? { ...c, status: nextStatus as any } : c))
+        )
+      }
+      window.dispatchEvent(new Event('campusfind_items_change'))
+    } catch (e) {}
   }
 
   // Filter items

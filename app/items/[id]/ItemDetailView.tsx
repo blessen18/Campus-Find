@@ -27,17 +27,38 @@ export function ItemDetailView({ initialItem, id, serverUser }: Props) {
     }
 
     if (!item && typeof window !== 'undefined') {
-      try {
-        const raw = localStorage.getItem('campusfind_custom_items')
-        if (raw) {
-          const list = JSON.parse(raw) as Item[]
-          const found = list.find(i => i.id === id)
-          if (found) {
-            setItem(found)
+      const fetchItemDetails = async () => {
+        // 1. Check localStorage
+        try {
+          const raw = localStorage.getItem('campusfind_custom_items')
+          if (raw) {
+            const list = JSON.parse(raw) as Item[]
+            const found = list.find(i => i.id === id)
+            if (found) {
+              setItem(found)
+              setLoading(false)
+              return
+            }
           }
-        }
-      } catch (e) {}
-      setLoading(false)
+        } catch (e) {}
+
+        // 2. Fetch from shared server API
+        try {
+          const res = await fetch(`/api/items/${id}`)
+          if (res.ok) {
+            const data = await res.json()
+            if (data.data) {
+              setItem(data.data)
+              setLoading(false)
+              return
+            }
+          }
+        } catch (e) {}
+
+        setLoading(false)
+      }
+
+      fetchItemDetails()
     }
   }, [id, item, user])
 
@@ -195,3 +216,4 @@ export function ItemDetailView({ initialItem, id, serverUser }: Props) {
     </div>
   )
 }
+

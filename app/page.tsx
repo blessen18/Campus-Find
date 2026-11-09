@@ -1,8 +1,7 @@
 import Link from 'next/link'
-import { Search, ArrowRight, Package, CheckCircle2, Clock, ShieldCheck, MapPin, AlertCircle, ArrowUpRight } from 'lucide-react'
+import { Search, ArrowUpRight, ArrowRight, ShieldCheck, MapPin, Clock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { ItemCard } from '@/components/ItemCard'
-import { INITIAL_CAMPUS_ITEMS } from '@/data/initialItems'
+import { HomeRecentFeeds } from '@/components/HomeRecentFeeds'
 import type { Item } from '@/types'
 
 async function getHomeData() {
@@ -146,77 +145,14 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Stats Bar ────────────────────────────────────────────────── */}
-      <section className="bg-slate-50 border-b border-slate-200 py-6">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-            {[
-              { icon: AlertCircle, label: 'Lost Reports', value: totalLost, color: 'text-red-600' },
-              { icon: CheckCircle2, label: 'Found Reports', value: totalFound, color: 'text-green-600' },
-              { icon: Package, label: 'Items Returned', value: totalResolved, color: 'text-blue-600' },
-              { icon: Clock, label: 'Platform Active', value: '24/7', color: 'text-slate-600' },
-            ].map(({ icon: Icon, label, value, color }) => (
-              <div key={label} className="space-y-1">
-                <Icon className={`w-5 h-5 mx-auto ${color}`} />
-                <div className="text-2xl font-bold text-slate-900">{value}</div>
-                <div className="text-xs text-slate-500 font-medium">{label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Recent Lost Items ─────────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 mt-12">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Recently Lost</h2>
-            <p className="text-sm text-slate-500 mt-0.5">Latest items reported as lost on campus</p>
-          </div>
-          <Link href="/lost-items" className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">
-            View all <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        {recentLost.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {recentLost.map(item => (
-              <ItemCard key={item.id} item={item} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16 text-slate-400 bg-white rounded-xl border border-slate-200">
-            <Package className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p className="font-medium">No lost items yet</p>
-          </div>
-        )}
-      </section>
-
-      {/* ── Recent Found Items ────────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 mt-12">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Recently Found</h2>
-            <p className="text-sm text-slate-500 mt-0.5">Items found on campus waiting to be claimed</p>
-          </div>
-          <Link href="/found-items" className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">
-            View all <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        {recentFound.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {recentFound.map(item => (
-              <ItemCard key={item.id} item={item} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16 text-slate-400 bg-white rounded-xl border border-slate-200">
-            <CheckCircle2 className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p className="font-medium">No found items reported yet</p>
-          </div>
-        )}
-      </section>
+      {/* ── Dynamic Stats Bar & Recent Feeds ────────────────────────── */}
+      <HomeRecentFeeds
+        initialLost={recentLost}
+        initialFound={recentFound}
+        initialTotalLost={totalLost}
+        initialTotalFound={totalFound}
+        initialTotalResolved={totalResolved}
+      />
 
       {/* ── How It Works ─────────────────────────────────────────────── */}
       <section className="bg-slate-50 border-t border-slate-200 mt-14 py-14">

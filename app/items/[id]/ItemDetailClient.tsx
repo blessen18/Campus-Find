@@ -2,12 +2,15 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Edit, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Edit, CheckCircle, AlertTriangle, Trash2, Check } from 'lucide-react'
 import { ClaimModal } from '@/components/ClaimModal'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/providers/ToastProvider'
 import type { Item } from '@/types'
+
+const LOCAL_ITEMS_STORAGE_KEY = 'campusfind_custom_items'
+const REMOVED_ITEMS_STORAGE_KEY = 'campusfind_removed_item_ids'
 
 interface Props {
   item: Item
@@ -20,31 +23,128 @@ interface Props {
 
 export function ItemDetailClient({ item, userId, userRole, isOwner, isAdmin, canClaim }: Props) {
   const [showClaimModal, setShowClaimModal] = useState(false)
-  const [markingResolved, setMarkingResolved] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
   const router = useRouter()
   const { success, error: showError } = useToast()
   const supabase = createClient()
 
-  const markResolved = async () => {
-    setMarkingResolved(true)
-    const { error } = await supabase
-      .from('items')
-      .update({ status: 'resolved', resolved_at: new Date().toISOString() })
-      .eq('id', item.id)
-    if (error) {
-      showError('Failed to update', error.message)
-    } else {
-      success('Marked as resolved!', 'This item has been successfully returned.')
+  const canRemove = isOwner || isAdmin
+  const isLost = item.type === 'lost'
+
+  // Mark resolved & remove from active campus listings
+  const handleResolveAndRemove = async () => {
+    const promptText = isLost
+      ? `Have you received your lost "${item.title}"?\n\nThis will remove the item from active campus search listings and mark it as Returned.`
+      : `Has the found "${item.title}" been returned to its rightful owner?\n\nThis will remove the item from active campus search listings and mark it as Reunited.`
+
+    if (!window.confirm(promptText)) return
+
+    setActionLoading(true)
+    try {
+      // 1. Call server API
+      const res = await fetch(`/api/items/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'resolved',
+          caller: { id: userId, role: userRole },
+        }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || 'Failed to update report.')
+      }
+
+      // 2. Also attempt Supabase update if reachable
+      try {
+        await supabase
+          .from('items')
+          .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+          .eq('id', item.id)
+      } catch (e) {}
+
+      // 3. Update localStorage
+      if (typeof window !== 'undefined') {
+        const rawCustom = localStorage.getItem(LOCAL_ITEMS_STORAGE_KEY)
+        if (rawCustom) {
+          try {
+            const list = JSON.parse(rawCustom) as Item[]
+            localStorage.setItem(
+              LOCAL_ITEMS_STORAGE_KEY,
+              JSON.stringify(list.map(i => i.id === item.id ? { ...i, status: 'resolved', resolved_at: new Date().toISOString() } : i))
+            )
+          } catch (e) {}
+        }
+        window.dispatchEvent(new Event('campusfind_items_change'))
+      }
+
+      success(
+        isLost ? 'Removed from reported!' : 'Removed from found!',
+        isLost
+          ? 'Glad you found your item! The report has been closed.'
+          : 'Thank you for helping reunite campus property!'
+      )
       router.refresh()
+    } catch (err: any) {
+      showError('Action failed', err?.message || 'Could not update report.')
+    } finally {
+      setActionLoading(false)
     }
-    setMarkingResolved(false)
+  }
+
+  // Completely delete report
+  const handleDeleteReport = async () => {
+    if (!window.confirm(`Permanently remove report "${item.title}" from CampusFind?`)) return
+
+    setActionLoading(true)
+    try {
+      // 1. Call server API
+      const res = await fetch(`/api/items/${item.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caller: { id: userId, role: userRole },
+        }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || 'Failed to delete report.')
+      }
+
+      // 2. Update localStorage
+      if (typeof window !== 'undefined') {
+        const rawCustom = localStorage.getItem(LOCAL_ITEMS_STORAGE_KEY)
+        if (rawCustom) {
+          try {
+            const list = JSON.parse(rawCustom) as Item[]
+            localStorage.setItem(LOCAL_ITEMS_STORAGE_KEY, JSON.stringify(list.filter(i => i.id !== item.id)))
+          } catch (e) {}
+        }
+
+        const removedIds = JSON.parse(localStorage.getItem(REMOVED_ITEMS_STORAGE_KEY) || '[]') as string[]
+        if (!removedIds.includes(item.id)) {
+          removedIds.push(item.id)
+          localStorage.setItem(REMOVED_ITEMS_STORAGE_KEY, JSON.stringify(removedIds))
+        }
+        window.dispatchEvent(new Event('campusfind_items_change'))
+      }
+
+      success('Report removed', `"${item.title}" has been deleted.`)
+      router.push(isLost ? '/lost-items' : '/found-items')
+    } catch (err: any) {
+      showError('Delete failed', err?.message || 'Could not delete report.')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   if (!userId) {
     return (
-      <div className="card p-5 text-center">
-        <p className="text-sm text-content-muted mb-4">Sign in to report this as yours or take action.</p>
-        <Link href={`/auth/login?redirect=/items/${item.id}`} className="btn-primary w-full justify-center">
+      <div className="card p-5 text-center bg-white rounded-2xl border border-slate-200/90 shadow-xs">
+        <p className="text-sm text-slate-500 mb-4">Sign in to report this as yours or take action.</p>
+        <Link href={`/auth/login?redirect=/items/${item.id}`} className="btn bg-blue-600 hover:bg-blue-700 text-white w-full justify-center text-xs py-2.5 rounded-lg font-semibold">
           Sign in to Claim
         </Link>
       </div>
@@ -53,73 +153,93 @@ export function ItemDetailClient({ item, userId, userRole, isOwner, isAdmin, can
 
   if (item.status !== 'active') {
     return (
-      <div className="card p-5 text-center">
-        <CheckCircle className="w-10 h-10 text-green-600 mx-auto mb-2" />
-        <p className="text-sm font-semibold text-content">This item has been {item.status}</p>
-        <p className="text-xs text-content-muted mt-1">No further action needed.</p>
+      <div className="card p-5 text-center bg-white rounded-2xl border border-slate-200/90 shadow-xs space-y-2">
+        <CheckCircle className="w-10 h-10 text-emerald-600 mx-auto mb-1" />
+        <p className="text-sm font-bold text-slate-900">This item has been {item.status}</p>
+        <p className="text-xs text-slate-500">Item successfully returned to owner. No further action needed.</p>
+        {canRemove && (
+          <button
+            onClick={handleDeleteReport}
+            disabled={actionLoading}
+            className="mt-3 text-xs text-rose-600 hover:text-rose-700 hover:underline inline-flex items-center gap-1"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> Delete Report Record
+          </button>
+        )}
       </div>
     )
   }
 
   return (
     <>
-      <div className="card p-5 space-y-3">
-        <h3 className="text-sm font-semibold text-content">Actions</h3>
+      <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-3">
+        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Actions</h3>
 
-        {/* Found item — allow claiming */}
+        {/* Found item — allow others to claim */}
         {canClaim && (
           <button
             onClick={() => setShowClaimModal(true)}
-            className="btn-primary w-full justify-center"
+            className="btn bg-blue-600 hover:bg-blue-700 text-white w-full justify-center text-xs py-2.5 rounded-lg font-semibold shadow-xs"
           >
             🙋 This is Mine — Claim It
           </button>
         )}
 
-        {/* Lost item — user can mark resolved */}
-        {isOwner && item.type === 'lost' && (
-          <button
-            onClick={markResolved}
-            disabled={markingResolved}
-            className="btn bg-green-600 text-white hover:bg-green-700 w-full justify-center"
-          >
-            <CheckCircle className="w-4 h-4" />
-            {markingResolved ? 'Updating…' : 'Mark as Returned'}
-          </button>
+        {/* Reporter or Admin: Remove from Reported / Remove from Found */}
+        {canRemove && (
+          <div className="space-y-2 pt-1">
+            <button
+              onClick={handleResolveAndRemove}
+              disabled={actionLoading}
+              className={`btn w-full justify-center text-xs py-2.5 rounded-lg font-semibold shadow-xs transition-all gap-1.5 ${
+                isLost 
+                  ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200' 
+                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
+              }`}
+            >
+              <Check className="w-4 h-4" />
+              {actionLoading ? 'Updating…' : isLost ? 'Remove from Reported' : 'Remove from Found'}
+            </button>
+            <p className="text-[11px] text-slate-400 text-center">
+              {isLost ? 'Click once you get your lost item back.' : 'Click once item is returned to owner.'}
+            </p>
+          </div>
         )}
 
-        {/* Owner — edit */}
+        {/* Reporter edit report */}
         {isOwner && (
-          <Link href={`/dashboard/edit/${item.id}`} className="btn-secondary w-full justify-center gap-2">
-            <Edit className="w-4 h-4" /> Edit Report
+          <Link href={`/dashboard/edit/${item.id}`} className="btn bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 w-full justify-center gap-2 text-xs py-2 rounded-lg font-medium">
+            <Edit className="w-3.5 h-3.5" /> Edit Report
           </Link>
         )}
 
-        {/* Admin actions */}
+        {/* Admin management shortcut */}
         {isAdmin && !isOwner && (
-          <>
-            <div className="border-t border-border pt-3">
-              <p className="text-xs font-semibold text-content-muted uppercase tracking-wide mb-2">Admin</p>
-              <button
-                onClick={markResolved}
-                disabled={markingResolved}
-                className="btn bg-green-600 text-white hover:bg-green-700 w-full justify-center btn-sm"
-              >
-                <CheckCircle className="w-4 h-4" />
-                {markingResolved ? 'Updating…' : 'Mark Resolved'}
-              </button>
-              <Link href={`/admin/items/${item.id}`} className="btn-secondary btn-sm w-full justify-center mt-2">
-                View in Admin
-              </Link>
-            </div>
-          </>
+          <div className="border-t border-slate-100 pt-3">
+            <Link href={`/admin`} className="btn bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs py-2 w-full justify-center rounded-lg font-medium">
+              View in Admin Console
+            </Link>
+          </div>
         )}
 
-        {/* Same person can't claim their own found item */}
+        {/* Delete Report option for owner/admin */}
+        {canRemove && (
+          <div className="border-t border-slate-100 pt-2 text-center">
+            <button
+              onClick={handleDeleteReport}
+              disabled={actionLoading}
+              className="text-xs text-rose-600 hover:text-rose-700 hover:underline inline-flex items-center gap-1 font-medium"
+            >
+              <Trash2 className="w-3 h-3" /> Delete Report
+            </button>
+          </div>
+        )}
+
+        {/* Finder note */}
         {isOwner && item.type === 'found' && (
-          <div className="flex items-start gap-2 text-xs text-content-muted bg-surface-muted rounded-lg p-3">
-            <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-            You reported this found item. Others can claim it.
+          <div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-50 rounded-xl p-3 border border-slate-100">
+            <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+            <span>You reported finding this item. Other students and staff can view and submit ownership claims.</span>
           </div>
         )}
       </div>
@@ -135,4 +255,3 @@ export function ItemDetailClient({ item, userId, userRole, isOwner, isAdmin, can
     </>
   )
 }
-

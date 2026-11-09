@@ -53,6 +53,23 @@ export function useItems(type?: 'lost' | 'found') {
         fetchedItems = data as Item[]
       }
 
+      // Fetch shared items from server API (items from all users/devices)
+      try {
+        const apiRes = await fetch('/api/items')
+        if (apiRes.ok) {
+          const apiJson = await apiRes.json()
+          if (apiJson.items && Array.isArray(apiJson.items)) {
+            for (const item of apiJson.items) {
+              if (!fetchedItems.some(f => f.id === item.id)) {
+                fetchedItems.push(item)
+              }
+            }
+          }
+        }
+      } catch (apiErr) {
+        // API offline or static fallback
+      }
+
       // Merge locally reported items (from localStorage)
       if (typeof window !== 'undefined') {
         try {
