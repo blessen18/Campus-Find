@@ -36,20 +36,20 @@ CREATE TABLE public.categories (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name        TEXT NOT NULL UNIQUE,
   slug        TEXT NOT NULL UNIQUE,
-  icon        TEXT NOT NULL DEFAULT '📦',
+  icon        TEXT NOT NULL DEFAULT 'package',
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 INSERT INTO public.categories (name, slug, icon) VALUES
-  ('Electronics',   'electronics',  '📱'),
-  ('Clothing',      'clothing',     '👕'),
-  ('Bags & Wallets','bags',         '🎒'),
-  ('Books & Notes', 'books',        '📚'),
-  ('Accessories',   'accessories',  '⌚'),
-  ('Keys & Cards',  'keys',         '🔑'),
-  ('Documents & ID','documents',    '🪪'),
-  ('Sports & Gym',  'sports',       '⚽'),
-  ('Other',         'other',        '📦');
+  ('Electronics',   'electronics',  'smartphone'),
+  ('Clothing',      'clothing',     'shirt'),
+  ('Bags & Wallets','bags',         'briefcase'),
+  ('Books & Notes', 'books',        'book-open'),
+  ('Accessories',   'accessories',  'watch'),
+  ('Keys & Cards',  'keys',         'key'),
+  ('Documents & ID','documents',    'file-text'),
+  ('Sports & Gym',  'sports',       'activity'),
+  ('Other',         'other',        'package');
 
 -- ─── LOCATIONS ────────────────────────────────────────────────────────────────
 

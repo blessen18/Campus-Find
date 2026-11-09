@@ -5,6 +5,9 @@ import { INITIAL_CAMPUS_ITEMS } from '@/data/initialItems'
 import { AdminDashboardClient } from './AdminDashboardClient'
 import type { Item, Claim, Profile } from '@/types'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function AdminPage() {
   const profile = await getServerUser()
   if (!profile) redirect('/auth/login?redirect=/admin')

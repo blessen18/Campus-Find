@@ -4,6 +4,9 @@ import { isPlaceholderSupabase } from '@/lib/utils'
 import { DashboardClient } from './DashboardClient'
 import type { Item, Claim } from '@/types'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function DashboardPage() {
   const profile = await getServerUser()
   if (!profile) redirect('/auth/login?redirect=/dashboard')

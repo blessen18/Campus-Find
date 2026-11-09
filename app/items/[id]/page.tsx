@@ -5,6 +5,9 @@ import { ItemDetailView } from './ItemDetailView'
 import type { Item } from '@/types'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 interface Props { params: { id: string } }
 
 async function getItem(id: string): Promise<Item | null> {

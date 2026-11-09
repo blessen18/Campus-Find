@@ -5,6 +5,9 @@ import { HomeRecentFeeds } from '@/components/HomeRecentFeeds'
 import { isPlaceholderSupabase } from '@/lib/utils'
 import type { Item } from '@/types'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 async function getHomeData() {
   if (isPlaceholderSupabase()) {
     return {
@@ -117,8 +120,8 @@ export default async function HomePage() {
               href="/report/lost"
               className="p-5 rounded-xl bg-red-50 border border-red-200 hover:border-red-400 hover:shadow-md transition-all group flex items-start gap-4"
             >
-              <div className="w-11 h-11 rounded-xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                <Search className="w-5 h-5" />
+              <div className="w-11 h-11 rounded-xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+                <Search className="w-5 h-5" strokeWidth={2.5} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
@@ -137,8 +140,8 @@ export default async function HomePage() {
               href="/report/found"
               className="p-5 rounded-xl bg-green-50 border border-green-200 hover:border-green-400 hover:shadow-md transition-all group flex items-start gap-4"
             >
-              <div className="w-11 h-11 rounded-xl bg-green-100 text-green-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                <CheckCircle2 className="w-5 h-5" />
+              <div className="w-11 h-11 rounded-xl bg-green-100 text-green-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+                <CheckCircle2 className="w-5 h-5" strokeWidth={2.5} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
