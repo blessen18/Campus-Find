@@ -94,8 +94,7 @@ export default function LoginPage() {
       success('Welcome back!', `Administrator session active: signed in as ${adminProfile.email}`)
       setLoading(false)
       window.open('/admin', '_blank')
-      router.push('/dashboard')
-      router.refresh()
+      window.location.href = '/dashboard'
       return
     }
 
@@ -150,11 +149,8 @@ export default function LoginPage() {
 
     if (isAdmin) {
       window.open('/admin', '_blank')
-      router.push('/dashboard')
-    } else {
-      router.push('/dashboard')
     }
-    router.refresh()
+    window.location.href = '/dashboard'
   }
 
   const fillDemoStudent = () => {
