@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { 
-  Trash2, ShieldCheck, UserCheck, Key, Plus, RefreshCw, 
-  AlertCircle, CheckCircle, Search, ExternalLink, ShieldAlert,
-  ArrowUpRight, Clock, FileText, Check, X
+  Trash2, ShieldCheck, Key, Plus,
+  AlertCircle, Search, ExternalLink,
+  Check, X, Eye, EyeOff, Copy, Edit3, Lock, Sparkles, Mail
 } from 'lucide-react'
 import { 
   formatDate, formatRelativeTime, 
@@ -20,6 +20,15 @@ import type { Item, Claim, Profile } from '@/types'
 const LOCAL_ITEMS_STORAGE_KEY = 'campusfind_custom_items'
 const DEVS_STORAGE_KEY = 'campusfind_developer_whitelist'
 const REMOVED_ITEMS_STORAGE_KEY = 'campusfind_removed_item_ids'
+const ADMIN_CREDS_STORAGE_KEY = 'campusfind_admin_credentials_v2'
+
+export interface AdminRecord {
+  email: string
+  password: string
+  assigned_at?: string
+  assigned_by?: string
+  isPrimary?: boolean
+}
 
 interface Props {
   initialItems: Item[]
@@ -43,9 +52,24 @@ export function AdminDashboardClient({
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | 'lost' | 'found'>('all')
 
-  // Developer Whitelist State
-  const [whitelistedDevs, setWhitelistedDevs] = useState<string[]>([DEVELOPER_EMAIL.toLowerCase()])
+  // Administrator & Developer Credentials State
+  const [adminsList, setAdminsList] = useState<AdminRecord[]>([
+    {
+      email: DEVELOPER_EMAIL.toLowerCase(),
+      password: 'Admin@2026!',
+      isPrimary: true,
+      assigned_by: 'Primary Authority',
+    },
+  ])
   const [newDevEmail, setNewDevEmail] = useState('')
+  const [newDevPassword, setNewDevPassword] = useState('')
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [isSubmittingAdmin, setIsSubmittingAdmin] = useState(false)
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({})
+  const [copiedEmail, setCopiedEmail] = useState<string | null>(null)
+  const [editingAdmin, setEditingAdmin] = useState<AdminRecord | null>(null)
+  const [editPasswordValue, setEditPasswordValue] = useState('')
+  const [showEditPassword, setShowEditPassword] = useState(false)
   const [devActionMsg, setDevActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // Load local modifications & developer list from localStorage + shared API
@@ -54,13 +78,27 @@ export function AdminDashboardClient({
 
     const syncItems = async () => {
       try {
-        // Load Whitelist
-        const savedDevs = localStorage.getItem(DEVS_STORAGE_KEY)
-        if (savedDevs) {
-          const parsed = JSON.parse(savedDevs) as string[]
-          if (Array.isArray(parsed)) {
-            const unique = Array.from(new Set([DEVELOPER_EMAIL.toLowerCase(), ...parsed.map(e => e.toLowerCase())]))
-            setWhitelistedDevs(unique)
+        // Fetch Admin Credentials from server API
+        try {
+          const res = await fetch('/api/admin/admins')
+          if (res.ok) {
+            const data = await res.json()
+            if (data.admins && Array.isArray(data.admins)) {
+              setAdminsList(data.admins)
+              localStorage.setItem(ADMIN_CREDS_STORAGE_KEY, JSON.stringify(data.admins))
+              localStorage.setItem(DEVS_STORAGE_KEY, JSON.stringify(data.admins.map((a: any) => a.email)))
+            }
+          }
+        } catch (e) {
+          // fallback to localStorage
+          const savedCreds = localStorage.getItem(ADMIN_CREDS_STORAGE_KEY)
+          if (savedCreds) {
+            try {
+              const parsed = JSON.parse(savedCreds)
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setAdminsList(parsed)
+              }
+            } catch (err) {}
           }
         }
 
@@ -112,52 +150,176 @@ export function AdminDashboardClient({
     return () => window.removeEventListener('campusfind_items_change', onItemsChange)
   }, [])
 
-  // Function to grant another Gmail developer access (SuperDev only)
-  const handleAddDeveloper = (e: React.FormEvent) => {
+  // Generate clean, secure passwords for new admins
+  const generatePassword = () => {
+    const words = ['Campus', 'Admin', 'Ajce', 'Shield', 'Security', 'Portal']
+    const word = words[Math.floor(Math.random() * words.length)]
+    const digits = Math.floor(1000 + Math.random() * 9000)
+    setNewDevPassword(`${word}@${digits}!`)
+    setShowNewPassword(true)
+  }
+
+  const generateEditPassword = () => {
+    const words = ['Campus', 'Admin', 'Ajce', 'Shield', 'Security', 'Portal']
+    const word = words[Math.floor(Math.random() * words.length)]
+    const digits = Math.floor(1000 + Math.random() * 9000)
+    setEditPasswordValue(`${word}@${digits}!`)
+    setShowEditPassword(true)
+  }
+
+  const handleCopyPassword = (email: string, password: string) => {
+    navigator.clipboard.writeText(password)
+    setCopiedEmail(email)
+    setTimeout(() => setCopiedEmail(null), 2500)
+  }
+
+  const togglePasswordVisibility = (email: string) => {
+    setVisiblePasswords(prev => ({
+      ...prev,
+      [email]: !prev[email],
+    }))
+  }
+
+  // Function to grant another administrator access and assign login password (Primary Admin only)
+  const handleAddDeveloper = async (e: React.FormEvent) => {
     e.preventDefault()
     setDevActionMsg(null)
-    const clean = newDevEmail.trim().toLowerCase()
+    const cleanEmail = newDevEmail.trim().toLowerCase()
+    const cleanPassword = newDevPassword.trim()
     
-    if (!clean) {
-      setDevActionMsg({ type: 'error', text: 'Please enter an email address.' })
+    if (!cleanEmail) {
+      setDevActionMsg({ type: 'error', text: 'Please enter an administrator email address.' })
       return
     }
-    if (!clean.includes('@') || !clean.includes('.')) {
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
       setDevActionMsg({ type: 'error', text: 'Please enter a valid email address.' })
       return
     }
-    if (whitelistedDevs.includes(clean)) {
-      setDevActionMsg({ type: 'error', text: 'This email already has developer access.' })
+    if (!cleanPassword || cleanPassword.length < 4) {
+      setDevActionMsg({ type: 'error', text: 'Please assign a login password with at least 4 characters.' })
+      return
+    }
+    if (adminsList.some(a => a.email.toLowerCase() === cleanEmail)) {
+      setDevActionMsg({ 
+        type: 'error', 
+        text: `Administrator "${cleanEmail}" is already authorized. Use the edit button below to change their password.` 
+      })
       return
     }
 
-    const updated = [...whitelistedDevs, clean]
-    setWhitelistedDevs(updated)
+    setIsSubmittingAdmin(true)
     try {
-      localStorage.setItem(DEVS_STORAGE_KEY, JSON.stringify(updated))
-      setDevActionMsg({ type: 'success', text: `Granted developer access to ${clean} successfully!` })
+      const res = await fetch('/api/admin/admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          password: cleanPassword,
+          callerEmail: currentUser.email,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setDevActionMsg({ type: 'error', text: data.error || 'Failed to assign administrator credentials.' })
+        setIsSubmittingAdmin(false)
+        return
+      }
+
+      const newAdmin: AdminRecord = data.admin || {
+        email: cleanEmail,
+        password: cleanPassword,
+        assigned_at: new Date().toISOString(),
+        assigned_by: currentUser.email,
+        isPrimary: false,
+      }
+
+      const updated = [...adminsList, newAdmin]
+      setAdminsList(updated)
+      localStorage.setItem(ADMIN_CREDS_STORAGE_KEY, JSON.stringify(updated))
+      localStorage.setItem(DEVS_STORAGE_KEY, JSON.stringify(updated.map(a => a.email)))
+
+      setDevActionMsg({ 
+        type: 'success', 
+        text: `Admin access granted to ${cleanEmail}. Assigned login password: ${cleanPassword}` 
+      })
       setNewDevEmail('')
+      setNewDevPassword('')
+      setShowNewPassword(false)
     } catch {
-      setDevActionMsg({ type: 'error', text: 'Failed to save to storage.' })
+      setDevActionMsg({ type: 'error', text: 'Network error saving admin credentials.' })
+    } finally {
+      setIsSubmittingAdmin(false)
     }
   }
 
-  // Remove a developer from whitelist
-  const handleRevokeDeveloper = (targetEmail: string) => {
+  // Update password for an existing administrator
+  const handleSaveUpdatedPassword = async () => {
+    if (!editingAdmin) return
+    const cleanPassword = editPasswordValue.trim()
+    if (!cleanPassword || cleanPassword.length < 4) {
+      alert('Password must be at least 4 characters long.')
+      return
+    }
+
+    try {
+      const res = await fetch('/api/admin/admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: editingAdmin.email,
+          password: cleanPassword,
+          callerEmail: currentUser.email,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || 'Failed to update login password')
+        return
+      }
+
+      const updated = adminsList.map(a => 
+        a.email.toLowerCase() === editingAdmin.email.toLowerCase()
+          ? { ...a, password: cleanPassword }
+          : a
+      )
+      setAdminsList(updated)
+      localStorage.setItem(ADMIN_CREDS_STORAGE_KEY, JSON.stringify(updated))
+      setDevActionMsg({
+        type: 'success',
+        text: `Updated login password for ${editingAdmin.email} to: ${cleanPassword}`,
+      })
+      setEditingAdmin(null)
+      setEditPasswordValue('')
+    } catch {
+      alert('Network error updating password.')
+    }
+  }
+
+  // Revoke administrator access
+  const handleRevokeDeveloper = async (targetEmail: string) => {
     if (targetEmail.toLowerCase() === DEVELOPER_EMAIL.toLowerCase()) {
       alert('The primary founding developer cannot be removed.')
       return
     }
-    if (!confirm(`Revoke developer privileges for ${targetEmail}?`)) return
+    if (!confirm(`Revoke administrator privileges and login access for ${targetEmail}?`)) return
 
-    const updated = whitelistedDevs.filter(e => e.toLowerCase() !== targetEmail.toLowerCase())
-    setWhitelistedDevs(updated)
     try {
-      localStorage.setItem(DEVS_STORAGE_KEY, JSON.stringify(updated))
-      setDevActionMsg({ type: 'success', text: `Revoked developer access for ${targetEmail}.` })
-    } catch (e) {
-      // ignore
-    }
+      await fetch('/api/admin/admins', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: targetEmail, callerEmail: currentUser.email }),
+      })
+    } catch (e) {}
+
+    const updated = adminsList.filter(e => e.email.toLowerCase() !== targetEmail.toLowerCase())
+    setAdminsList(updated)
+    try {
+      localStorage.setItem(ADMIN_CREDS_STORAGE_KEY, JSON.stringify(updated))
+      localStorage.setItem(DEVS_STORAGE_KEY, JSON.stringify(updated.map(e => e.email)))
+      setDevActionMsg({ type: 'success', text: `Revoked administrator access for ${targetEmail}.` })
+    } catch (e) {}
   }
 
   // Developer action: Instantly delete/remove a reported item
@@ -243,7 +405,7 @@ export function AdminDashboardClient({
     activeFound: items.filter(i => i.type === 'found' && i.status === 'active').length,
     resolved: items.filter(i => i.status === 'resolved').length,
     pendingClaims: claims.length,
-    totalDevs: whitelistedDevs.length,
+    totalDevs: adminsList.length,
   }
 
   return (
@@ -318,27 +480,60 @@ export function AdminDashboardClient({
           </div>
 
           {isSuperDev ? (
-            <div className="space-y-4">
-              <form onSubmit={handleAddDeveloper} className="flex flex-col sm:flex-row gap-2 max-w-xl">
-                <input
-                  type="email"
-                  value={newDevEmail}
-                  onChange={e => setNewDevEmail(e.target.value)}
-                  placeholder="Enter Gmail address (e.g. co-dev@gmail.com)"
-                  className="flex-1 input text-xs sm:text-sm"
-                />
+            <div className="space-y-5">
+              {/* Add New Admin Form */}
+              <form onSubmit={handleAddDeveloper} className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-2xl">
+                  <input
+                    type="email"
+                    value={newDevEmail}
+                    onChange={e => setNewDevEmail(e.target.value)}
+                    placeholder="Admin Gmail address"
+                    className="flex-1 input text-xs sm:text-sm"
+                    required
+                  />
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newDevPassword}
+                      onChange={e => setNewDevPassword(e.target.value)}
+                      placeholder="Assign login password"
+                      className="w-full input text-xs sm:text-sm pr-16"
+                    />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={generatePassword}
+                        className="p-1 text-slate-400 hover:text-indigo-600"
+                        title="Auto-generate password"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(v => !v)}
+                        className="p-1 text-slate-400 hover:text-slate-600"
+                        title={showNewPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 <button
                   type="submit"
-                  className="btn bg-slate-900 hover:bg-slate-800 text-white text-xs px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-1.5 shadow-sm"
+                  disabled={isSubmittingAdmin}
+                  className="btn bg-slate-900 hover:bg-slate-800 text-white text-xs px-5 py-2 rounded-lg font-medium flex items-center gap-1.5 shadow-sm disabled:opacity-50"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Grant Access
+                  <Plus className="w-3.5 h-3.5" />
+                  {isSubmittingAdmin ? 'Granting Access...' : 'Grant Admin Access'}
                 </button>
               </form>
 
               {devActionMsg && (
                 <div className={`p-3 rounded-lg text-xs flex items-center gap-2 border ${
-                  devActionMsg.type === 'success' 
-                    ? 'bg-green-50 text-green-700 border-green-200' 
+                  devActionMsg.type === 'success'
+                    ? 'bg-green-50 text-green-700 border-green-200'
                     : 'bg-red-50 text-red-700 border-red-200'
                 }`}>
                   {devActionMsg.type === 'success' ? <Check className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
@@ -346,43 +541,136 @@ export function AdminDashboardClient({
                 </div>
               )}
 
-              {/* Whitelist Display */}
-              <div className="pt-2">
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-2">
-                  Authorized Administrators ({whitelistedDevs.length})
+              {/* Administrators List */}
+              <div className="pt-1">
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-3">
+                  Authorized Administrators ({adminsList.length})
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                  {whitelistedDevs.map(devMail => (
-                    <div 
-                      key={devMail} 
-                      className={`flex items-center justify-between p-2.5 rounded-lg border text-xs ${
-                        devMail.toLowerCase() === DEVELOPER_EMAIL.toLowerCase() 
-                          ? 'bg-amber-50/60 border-amber-200 text-amber-900 font-semibold' 
-                          : 'bg-slate-50 border-slate-200 text-slate-700'
+                <div className="space-y-2">
+                  {adminsList.map(admin => (
+                    <div
+                      key={admin.email}
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border text-xs ${
+                        admin.isPrimary
+                          ? 'bg-amber-50/60 border-amber-200'
+                          : 'bg-slate-50 border-slate-200'
                       }`}
                     >
-                      <span className="truncate mr-2 font-mono">{devMail}</span>
-                      {devMail.toLowerCase() === DEVELOPER_EMAIL.toLowerCase() ? (
-                        <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-bold">Primary</span>
-                      ) : (
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${admin.isPrimary ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'}`}>
+                          <Mail className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-slate-800 font-mono truncate">{admin.email}</span>
+                            {admin.isPrimary && (
+                              <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-bold flex-shrink-0">Primary</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <Lock className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                            <span className="font-mono text-slate-500 tracking-wider">
+                              {visiblePasswords[admin.email] ? admin.password : '••••••••'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
                         <button
                           type="button"
-                          onClick={() => handleRevokeDeveloper(devMail)}
-                          className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded"
-                          title="Revoke developer access"
+                          onClick={() => setVisiblePasswords(v => ({ ...v, [admin.email]: !v[admin.email] }))}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-white border border-transparent hover:border-slate-200 transition-all"
+                          title={visiblePasswords[admin.email] ? 'Hide password' : 'Show password'}
                         >
-                          <X className="w-3.5 h-3.5" />
+                          {visiblePasswords[admin.email] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPassword(admin.email, admin.password)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all"
+                          title="Copy password"
+                        >
+                          {copiedEmail === admin.email ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setEditingAdmin(admin); setEditPasswordValue(admin.password); setShowEditPassword(false) }}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 transition-all"
+                          title="Edit password"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        {!admin.isPrimary && (
+                          <button
+                            type="button"
+                            onClick={() => handleRevokeDeveloper(admin.email)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-all"
+                            title="Revoke access"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
+
+              {/* Edit Password Modal */}
+              {editingAdmin && (
+                <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-xl space-y-3">
+                  <p className="text-xs font-semibold text-indigo-800">
+                    Update login password for <span className="font-mono">{editingAdmin.email}</span>
+                  </p>
+                  <div className="flex gap-2 max-w-sm">
+                    <div className="relative flex-1">
+                      <input
+                        type={showEditPassword ? 'text' : 'password'}
+                        value={editPasswordValue}
+                        onChange={e => setEditPasswordValue(e.target.value)}
+                        placeholder="New password"
+                        className="w-full input text-xs pr-16"
+                      />
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={generateEditPassword}
+                          className="p-1 text-slate-400 hover:text-indigo-600"
+                          title="Auto-generate password"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowEditPassword(v => !v)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                        >
+                          {showEditPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSaveUpdatedPassword}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded-lg font-medium flex items-center gap-1"
+                    >
+                      <Check className="w-3.5 h-3.5" /> Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEditingAdmin(null); setEditPasswordValue('') }}
+                      className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-600 text-xs rounded-lg font-medium border border-slate-200"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 space-y-1">
               <p className="font-semibold text-slate-800">Delegate Management Locked</p>
-              <p>You have developer access to inspect and remove reported items, but only the primary founding developer ({DEVELOPER_EMAIL}) has authority to add or revoke other developers.</p>
+              <p>You have administrator access to manage campus items, but only the primary administrator ({DEVELOPER_EMAIL}) has authority to add or revoke other administrators.</p>
             </div>
           )}
         </section>
