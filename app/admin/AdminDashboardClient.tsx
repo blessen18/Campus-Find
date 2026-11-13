@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { 
-  Trash2, ShieldCheck, Key, Plus,
+  Trash2, ShieldCheck, Key, Plus, RefreshCw,
   AlertCircle, Search, ExternalLink,
   Check, X, Eye, EyeOff, Copy, Edit3, Lock, Sparkles, Mail
 } from 'lucide-react'
@@ -773,7 +773,7 @@ export function AdminDashboardClient({
                             title="Click to toggle status between active and resolved"
                             className={`badge text-xs cursor-pointer hover:opacity-80 transition-opacity ${STATUS_COLORS[item.status]}`}
                           >
-                            {STATUS_LABELS[item.status]} ⟳
+                            {STATUS_LABELS[item.status]} <RefreshCw className="w-3 h-3 inline-block ml-0.5 opacity-70" />
                           </button>
                         </td>
 
